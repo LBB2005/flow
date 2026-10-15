@@ -14,12 +14,19 @@ settings:
     CODE_SIGN_IDENTITY: "Flow Dev"
     DEVELOPMENT_TEAM: ""
     OTHER_CODE_SIGN_FLAGS: "--timestamp=none"
+packages:
+  ArgmaxOSS:
+    url: https://github.com/argmaxinc/argmax-oss-swift
+    exactVersion: 1.1.0
 targets:
   Flow:
     type: application
     platform: macOS
     sources:
       - path: Flow
+    dependencies:
+      - package: ArgmaxOSS
+        product: WhisperKit
     info:
       path: Flow/Resources/Info.plist
       properties:
