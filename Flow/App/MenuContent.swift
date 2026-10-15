@@ -12,6 +12,9 @@ struct MenuContent: View {
                 app.permissions.openAccessibilitySettings()
             }
         }
+        if app.permissions.microphone == .denied {
+            Button("⚠︎ Allow Microphone access…") { app.permissions.openMicrophoneSettings() }
+        }
         Divider()
         Button("Quit Flow") { NSApp.terminate(nil) }
             .keyboardShortcut("q")

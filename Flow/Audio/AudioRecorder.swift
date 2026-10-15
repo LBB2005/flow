@@ -4,7 +4,7 @@ enum RecorderError: Error { case noInputDevice, unsupportedFormat }
 
 @MainActor
 final class AudioRecorder: Recorder {
-    static let sampleRate = 16_000.0
+    nonisolated static let sampleRate = 16_000.0
     static let maxDuration: TimeInterval = 300
 
     var onMaxDurationReached: (@MainActor () -> Void)?
