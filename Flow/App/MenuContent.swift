@@ -4,7 +4,7 @@ struct MenuContent: View {
     let app: AppModel
 
     var body: some View {
-        Text("Hold \(app.settings.hotkey.displayName) to dictate")
+        Text("Tap or hold \(app.settings.hotkey.displayName) to dictate")
         Divider()
         if !app.permissions.accessibility {
             Button("⚠︎ Allow Accessibility (needed for the hotkey)…") {

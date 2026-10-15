@@ -40,6 +40,7 @@ final class AppModel {
         recorder.preferredDeviceUID = settings.microphoneUID
         recorder.prepare()
         hotkeyMonitor.onAction = { [weak self] action in self?.coordinator.handle(action) }
+        coordinator.onAutoStop = { [weak self] in self?.hotkeyMonitor.resetGesture() }
         if permissions.microphone == .notDetermined {
             Task { await permissions.requestMicrophone() }
         }

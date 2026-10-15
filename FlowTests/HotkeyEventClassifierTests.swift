@@ -85,4 +85,24 @@ struct HotkeyEventClassifierTests {
     @Test func escapeDuringComboIsSwallowed() {
         #expect(classify(ctrlSpace, .keyDown, key: KeyNames.escape, flags: 0x40000, engaged: true) == .init(signal: .escape, swallow: true))
     }
+
+    // Default (⌥→). Arrow key events also carry the Fn (0x800000) and NumPad (0x200000) flags.
+
+    private let optionRight = Hotkey.combo(modifiers: .option, keyCode: KeyNames.rightArrow)
+    private let arrowFlags: UInt64 = 0x800000 | 0x200000
+
+    @Test func optionRightArrowIsSwallowedAsDown() {
+        #expect(classify(optionRight, .keyDown, key: KeyNames.rightArrow, flags: 0x80000 | arrowFlags)
+                == .init(signal: .down, swallow: true))
+    }
+
+    @Test func optionShiftRightArrowStillSelectsWords() {
+        #expect(classify(optionRight, .keyDown, key: KeyNames.rightArrow, flags: 0x80000 | 0x20000 | arrowFlags)
+                == .init(signal: nil, swallow: false))
+    }
+
+    @Test func plainRightArrowStillMovesTheCursor() {
+        #expect(classify(optionRight, .keyDown, key: KeyNames.rightArrow, flags: arrowFlags)
+                == .init(signal: nil, swallow: false))
+    }
 }

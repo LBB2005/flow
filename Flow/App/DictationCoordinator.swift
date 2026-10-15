@@ -11,6 +11,8 @@ final class DictationCoordinator {
 
     var transcriber: Transcriber
     var cleaner: Cleaner
+    /// Called when recording stops by itself (max length), so the hotkey can un-latch.
+    var onAutoStop: (@MainActor () -> Void)?
     /// Called after every dictation that reached processing (resets the keep-warm timer).
     var onDictationProcessed: (@MainActor () -> Void)?
 
@@ -42,6 +44,7 @@ final class DictationCoordinator {
         recorder.onMaxDurationReached = { [weak self] in
             Log.audio.notice("max recording length reached")
             self?.handle(.finish)
+            self?.onAutoStop?()
         }
     }
 
@@ -67,12 +70,6 @@ final class DictationCoordinator {
         case .confirm:
             guard phase == .recording else { return }
             pill.show(.listening)
-
-        case .discard:
-            guard phase == .recording else { return }
-            recorder.cancel()
-            phase = .idle
-            pill.hide()
 
         case .cancel(let reason):
             guard phase == .recording else { return }

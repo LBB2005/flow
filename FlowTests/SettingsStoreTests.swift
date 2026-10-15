@@ -10,7 +10,7 @@ struct SettingsStoreTests {
 
     @Test func defaultsMatchSpec() {
         let store = SettingsStore(defaults: freshDefaults())
-        #expect(store.hotkey == .modifierOnly(.rightOption))
+        #expect(store.hotkey == .combo(modifiers: .option, keyCode: KeyNames.rightArrow))
         #expect(store.microphoneUID == nil)
         #expect(store.whisperModel == .largeV3Turbo)
         #expect(store.cleanupModel == .qwen3_1_7b)

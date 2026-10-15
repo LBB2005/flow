@@ -59,6 +59,12 @@ final class HotkeyMonitor {
         Log.hotkey.info("hotkey changed to \(newHotkey.displayName)")
     }
 
+    /// Forgets a latched hands-free gesture without emitting an action (the recording already ended).
+    func resetGesture() {
+        machine.reset()
+        tickTask?.cancel()
+    }
+
     /// While paused every event passes straight through (used while recording a new shortcut).
     func setPaused(_ paused: Bool) {
         if paused { cancelIfEngaged() }

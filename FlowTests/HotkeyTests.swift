@@ -3,9 +3,11 @@ import Testing
 @testable import Flow
 
 struct HotkeyTests {
-    @Test func defaultIsRightOption() {
-        #expect(Hotkey.default == .modifierOnly(.rightOption))
-        #expect(Hotkey.default.displayName == "Right ⌥")
+    @Test func defaultIsOptionRightArrow() {
+        // Option + Right Arrow, chosen by the user (accepting that ⌥→ no longer jumps a word).
+        #expect(Hotkey.default == .combo(modifiers: .option, keyCode: KeyNames.rightArrow))
+        #expect(Hotkey.default.displayName == "⌥→")
+        #expect(Hotkey.default.validation == .ok)
     }
 
     @Test func comboDisplayUsesStandardModifierOrder() {

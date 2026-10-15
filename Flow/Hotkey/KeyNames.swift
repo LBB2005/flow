@@ -4,6 +4,7 @@ enum KeyNames {
     static let space: UInt16 = 49
     static let tab: UInt16 = 48
     static let returnKey: UInt16 = 36
+    static let rightArrow: UInt16 = 124
 
     static func name(for keyCode: UInt16) -> String {
         names[keyCode] ?? "Key \(keyCode)"

@@ -93,14 +93,14 @@ struct DictationCoordinatorTests {
         #expect(c.phase == .idle)
     }
 
-    @Test func discardCancelsRecordingSilently() {
+    @Test func maxDurationNotifiesAutoStop() {
+        // Lets the hotkey monitor un-latch, so the next press starts a new dictation.
         let (c, _, _) = makeCoordinator()
+        let stops = Counter()
+        c.onAutoStop = { stops.value += 1 }
         c.handle(.begin)
-        c.handle(.discard)
-        #expect(recorder.events == ["start", "cancel"])
-        #expect(pill.shown.isEmpty)
-        #expect(pill.hideCount == 1)
-        #expect(c.phase == .idle)
+        recorder.onMaxDurationReached?()
+        #expect(stops.value == 1)
     }
 
     @Test func escapeShowsCancelled() {

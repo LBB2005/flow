@@ -1,7 +1,7 @@
 # Flow — Design Spec
 
 **Date:** 2026-10-15
-**Status:** Approved (2026-10-15)
+**Status:** Approved (2026-10-15). Amended same day after the UI round: ⌥→ default hotkey, tap-to-toggle + hold-to-talk, notch overlay (see §11).
 
 ## 1. Purpose
 
@@ -273,3 +273,28 @@ resets the timer.
    settings window incl. `HotkeyRecorderView`, permissions onboarding.
    Review checkpoint.
 6. **Polish:** manual test pass, UI tweaks from feedback, README.
+
+## 11. Amendments (2026-10-15, after UI round 1)
+
+These override earlier sections where they conflict.
+
+1. **Default hotkey: ⌥→ (Option + Right Arrow).** The user's choice, accepting that ⌥→
+   ("jump one word right") no longer works in text fields. ⌥⇧→ (select word) and plain →
+   are unaffected because modifiers must match exactly. Still changeable in Settings.
+2. **Tap to toggle + hold to talk** (replaces "hold shorter than 0.3 s is ignored"):
+   - Quick press (< 0.3 s) starts **hands-free** recording; the next press stops it and pastes.
+   - Holding (≥ 0.3 s) is **push-to-talk**; releasing stops it and pastes.
+   - While the key is physically down, another key or a click cancels (⌥E, ⌥-click).
+     In hands-free mode, clicks and typing are ignored (so the user can click the text box
+     they want the text pasted into). **Esc** cancels in every mode.
+   - If recording hits the 5-minute cap in hands-free mode, the hotkey un-latches so the next
+     press starts a new dictation.
+3. **Overlay: Midnight Capsule in the notch ("Slim Wings", A1 Calm Scroll).** Replaces the
+   bottom-centre pill. A black shape grows out of the MacBook notch (340 × 34 pt) with the
+   waveform in the left wing and the recording dot + timer in the right wing. Exact values:
+   `docs/mockups/pill-decision.md`. Always shown on the **built-in (notched) display**, even
+   when working on an external monitor. If the built-in display is off (lid closed), it hangs
+   from the top-centre of the main screen with the same look.
+4. **Waveform reacts to loudness** (RMS → 0…1 over −50…0 dBFS), sampled every 120 ms with
+   smoothing 0.55 and a 180 ms ease, so quiet speech draws short bars and loud speech tall ones.
+

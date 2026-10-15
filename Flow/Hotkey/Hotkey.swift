@@ -79,7 +79,8 @@ enum Hotkey: Codable, Hashable, Sendable {
     /// Hold modifiers plus one key (e.g. ⌃Space).
     case combo(modifiers: ModifierSet, keyCode: UInt16)
 
-    static let `default` = Hotkey.modifierOnly(.rightOption)
+    /// Option + Right Arrow (user's choice; ⌥⇧→ word selection still works because modifiers must match exactly).
+    static let `default` = Hotkey.combo(modifiers: .option, keyCode: KeyNames.rightArrow)
 
     var displayName: String {
         switch self {
