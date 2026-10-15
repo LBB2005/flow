@@ -11,7 +11,7 @@ settings:
     MACOSX_DEPLOYMENT_TARGET: "26.0"
     ENABLE_HARDENED_RUNTIME: NO
     CODE_SIGN_STYLE: Manual
-    CODE_SIGN_IDENTITY: "-"
+    CODE_SIGN_IDENTITY: "Flow Dev"
     DEVELOPMENT_TEAM: ""
     OTHER_CODE_SIGN_FLAGS: "--timestamp=none"
 targets:
