@@ -2,12 +2,13 @@ import SwiftUI
 
 @main
 struct FlowApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+
     var body: some Scene {
-        MenuBarExtra("Flow", systemImage: "waveform") {
-            Text("Flow is starting…")
-            Divider()
-            Button("Quit Flow") { NSApp.terminate(nil) }
-                .keyboardShortcut("q")
+        MenuBarExtra {
+            MenuContent(app: appDelegate.model)
+        } label: {
+            Image(systemName: appDelegate.model.permissions.accessibility ? "waveform" : "exclamationmark.triangle")
         }
     }
 }
