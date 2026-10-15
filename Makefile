@@ -3,7 +3,7 @@ SCHEME   = Flow
 DEST     = -destination 'platform=macOS,arch=arm64'
 DERIVED  = build/DerivedData
 APP      = $(DERIVED)/Build/Products/Debug/Flow.app
-XCB      = xcodebuild -project $(PROJECT) -scheme $(SCHEME) $(DEST) -derivedDataPath $(DERIVED)
+XCB      = xcodebuild -project $(PROJECT) -scheme $(SCHEME) $(DEST) -derivedDataPath $(DERIVED) -skipMacroValidation
 
 gen:
 	xcodegen generate --quiet
