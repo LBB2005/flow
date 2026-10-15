@@ -51,7 +51,6 @@ final class AppModel {
         #endif
         permissions.refresh()
         recorder.preferredDeviceUID = settings.microphoneUID
-        recorder.prepare()
         recorder.onLevel = { [weak self] level in self?.overlay.push(level: level) }
         hotkeyMonitor.onAction = { [weak self] action in self?.coordinator.handle(action) }
         coordinator.onAutoStop = { [weak self] in self?.hotkeyMonitor.resetGesture() }
@@ -65,10 +64,15 @@ final class AppModel {
     private func startHotkeyWhenTrusted() {
         permissionPoll?.cancel()
         permissionPoll = Task { [weak self] in
+            var loggedWaiting = false
             while !Task.isCancelled {
                 guard let self else { return }
                 self.permissions.refresh()
                 if self.permissions.accessibility && self.hotkeyMonitor.start() { return }
+                if !loggedWaiting {
+                    Log.hotkey.notice("waiting for Accessibility permission (microphone: \(String(describing: self.permissions.microphone)))")
+                    loggedWaiting = true
+                }
                 try? await Task.sleep(for: .seconds(2))
             }
         }

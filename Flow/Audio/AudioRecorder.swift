@@ -17,9 +17,6 @@ final class AudioRecorder: Recorder {
     private var accumulator = SampleAccumulator(maxSamples: Int(sampleRate * maxDuration))
     private var isRecording = false
 
-    /// Pre-warms the engine at launch so recording starts faster.
-    func prepare() { engine.prepare() }
-
     func start() throws {
         guard !isRecording else { return }
         if let uid = preferredDeviceUID { AudioDevices.setInputDevice(uid: uid, on: engine) }

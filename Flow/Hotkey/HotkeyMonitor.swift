@@ -40,7 +40,7 @@ final class HotkeyMonitor {
         CGEvent.tapEnable(tap: tap, enable: true)
         self.tap = tap
         self.runLoopSource = source
-        Log.hotkey.info("event tap installed for \(self.hotkey.displayName)")
+        Log.hotkey.notice("event tap installed for \(self.hotkey.displayName)")
         return true
     }
 
