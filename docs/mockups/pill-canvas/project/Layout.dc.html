@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Flow pill position and size</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 1440px; height: 640px; box-sizing: border-box; padding: 28px 32px; background: #0E0E11; color: #F5F5F7; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif; display: flex; flex-direction: column; gap: 22px">
+<div style="display: flex; align-items: baseline; gap: 12px">
+<span style="font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: #8E8E93">LAYOUT</span>
+<h1 style="margin: 0; font-size: 26px; font-weight: 650; letter-spacing: -0.01em">Where it appears, and how big</h1>
+</div>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="position: relative; height: 200px; border-radius: 12px; overflow: hidden; background: #2B2D36">
+<div style="position: absolute; left: 0; right: 0; top: 0; height: 12px; background: rgba(0,0,0,0.4)"></div>
+<div style="position: absolute; left: 36px; right: 36px; top: 30px; height: 120px; border-radius: 8px; background-color: #F2F1ED; background-image: repeating-linear-gradient(180deg, rgba(0,0,0,0.06) 0 3px, transparent 3px 14px); background-position: 14px 18px; background-size: 70% 100%; background-repeat: no-repeat"></div>
+<div style="position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%) scale(0.55); transform-origin: bottom center">
+<dc-import name="Pill" variant="1" state="listening" surface="dark" accent="#5BD3FF" accent2="#3B82F6" hint-size="200px,52px"></dc-import>
+</div>
+</div>
+<span style="font-size: 15px; font-weight: 600">Bottom centre</span>
+<span style="font-size: 13px; color: #A1A1A6; line-height: 1.4">The plan's default. Out of the way of most text and always in the same place.</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="position: relative; height: 200px; border-radius: 12px; overflow: hidden; background: #2B2D36">
+<div style="position: absolute; left: 0; right: 0; top: 0; height: 12px; background: rgba(0,0,0,0.4)"></div>
+<div style="position: absolute; left: 50%; top: 0; width: 64px; height: 14px; transform: translateX(-50%); border-radius: 0 0 8px 8px; background: #000"></div>
+<div style="position: absolute; left: 36px; right: 36px; top: 50px; height: 120px; border-radius: 8px; background-color: #F2F1ED; background-image: repeating-linear-gradient(180deg, rgba(0,0,0,0.06) 0 3px, transparent 3px 14px); background-position: 14px 18px; background-size: 70% 100%; background-repeat: no-repeat"></div>
+<div style="position: absolute; left: 50%; top: 12px; transform: translateX(-50%) scale(0.55); transform-origin: top center">
+<dc-import name="Pill" variant="4" state="listening" surface="dark" accent="#30D158" accent2="#34D399" hint-size="240px,52px"></dc-import>
+</div>
+</div>
+<span style="font-size: 15px; font-weight: 600">Top centre, from the notch</span>
+<span style="font-size: 13px; color: #A1A1A6; line-height: 1.4">Drops out of the MacBook notch. Pairs naturally with the Island style.</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="position: relative; height: 200px; border-radius: 12px; overflow: hidden; background: #2B2D36">
+<div style="position: absolute; left: 0; right: 0; top: 0; height: 12px; background: rgba(0,0,0,0.4)"></div>
+<div style="position: absolute; left: 36px; right: 36px; top: 30px; height: 120px; border-radius: 8px; background-color: #F2F1ED; background-image: repeating-linear-gradient(180deg, rgba(0,0,0,0.06) 0 3px, transparent 3px 14px); background-position: 14px 18px; background-size: 40% 100%; background-repeat: no-repeat"></div>
+<div style="position: absolute; left: 132px; top: 62px; width: 2px; height: 14px; background: #0A84FF"></div>
+<div style="position: absolute; left: 120px; top: 80px; transform: scale(0.55); transform-origin: top left">
+<dc-import name="Pill" variant="2" state="listening" surface="light" accent="#0A84FF" accent2="#5E5CE6" hint-size="160px,44px"></dc-import>
+</div>
+</div>
+<span style="font-size: 15px; font-weight: 600">Next to the text cursor</span>
+<span style="font-size: 13px; color: #A1A1A6; line-height: 1.4">Appears right where the text will land. Most direct, but it can cover nearby text.</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="position: relative; height: 200px; border-radius: 12px; overflow: hidden; background: #2B2D36">
+<div style="position: absolute; left: 0; right: 0; top: 0; height: 12px; background: rgba(0,0,0,0.4)"></div>
+<div style="position: absolute; left: 36px; right: 36px; top: 30px; height: 120px; border-radius: 8px; background-color: #F2F1ED; background-image: repeating-linear-gradient(180deg, rgba(0,0,0,0.06) 0 3px, transparent 3px 14px); background-position: 14px 18px; background-size: 70% 100%; background-repeat: no-repeat"></div>
+<div style="position: absolute; right: 6px; bottom: 6px; transform: scale(0.55); transform-origin: bottom right">
+<dc-import name="Pill" variant="6" state="listening" surface="dark" accent="#7C9CFF" accent2="#C084FC" hint-size="60px,60px"></dc-import>
+</div>
+</div>
+<span style="font-size: 15px; font-weight: 600">Bottom-right corner</span>
+<span style="font-size: 13px; color: #A1A1A6; line-height: 1.4">Like a notification. The least intrusive, but easy to miss.</span>
+</div>
+</div>
+<div style="display: flex; gap: 20px; align-items: stretch">
+<div style="flex: 1 1 0; display: flex; flex-direction: column; gap: 8px">
+<div style="height: 110px; border-radius: 12px; background: #1E1E24; display: flex; align-items: center; justify-content: center">
+<div style="transform: scale(0.85)"><dc-import name="Pill" variant="1" state="thinking" surface="dark" accent="#5BD3FF" accent2="#3B82F6" hint-size="160px,52px"></dc-import></div>
+</div>
+<span style="font-size: 15px; font-weight: 600">Compact · 85%</span>
+</div>
+<div style="flex: 1 1 0; display: flex; flex-direction: column; gap: 8px">
+<div style="height: 110px; border-radius: 12px; background: #1E1E24; display: flex; align-items: center; justify-content: center">
+<dc-import name="Pill" variant="1" state="thinking" surface="dark" accent="#5BD3FF" accent2="#3B82F6" hint-size="160px,52px"></dc-import>
+</div>
+<span style="font-size: 15px; font-weight: 600">Default · 100%</span>
+</div>
+<div style="flex: 1 1 0; display: flex; flex-direction: column; gap: 8px">
+<div style="height: 110px; border-radius: 12px; background: #1E1E24; display: flex; align-items: center; justify-content: center">
+<div style="transform: scale(1.25)"><dc-import name="Pill" variant="1" state="thinking" surface="dark" accent="#5BD3FF" accent2="#3B82F6" hint-size="160px,52px"></dc-import></div>
+</div>
+<span style="font-size: 15px; font-weight: 600">Large · 125%</span>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":640}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Option 3: Aurora Glass</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 760px; height: 700px; box-sizing: border-box; padding: 28px 32px; background: #0E0E11; color: #F5F5F7; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: baseline; gap: 12px">
+<span style="font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: #8E8E93">OPTION 3</span>
+<h1 style="margin: 0; font-size: 26px; font-weight: 650; letter-spacing: -0.01em">Aurora Glass</h1>
+</div>
+<p style="margin: 0; color: #A1A1A6; font-size: 14px; line-height: 1.45">macOS 26 style glass with a two-colour gradient waveform. The most expressive option, and it blends with the app behind it.</p>
+<div style="display: flex; gap: 10px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #8E8E93; padding-left: 150px">
+<span style="flex: 1 1 0">ON A DARK APP</span>
+<span style="flex: 1 1 0">ON A LIGHT APP</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{states}}" as="s" hint-placeholder-count="7">
+<div style="display: flex; gap: 10px; align-items: stretch">
+<span style="width: 140px; flex: none; font-size: 13px; color: #D1D1D6; display: flex; align-items: center">{{s.label}}</span>
+<div style="flex: 1 1 0; height: 66px; border-radius: 10px; background-color: #1E1E24; background-image: repeating-linear-gradient(180deg, rgba(255,255,255,0.04) 0 3px, transparent 3px 16px); display: flex; align-items: center; justify-content: center; overflow: hidden">
+<dc-import name="Pill" variant="3" state="{{s.id}}" surface="dark" accent="{{accent}}" accent2="{{accent2}}" hint-size="200px,56px"></dc-import>
+</div>
+<div style="flex: 1 1 0; height: 66px; border-radius: 10px; background-color: #F2F1ED; background-image: repeating-linear-gradient(180deg, rgba(0,0,0,0.045) 0 3px, transparent 3px 16px); display: flex; align-items: center; justify-content: center; overflow: hidden">
+<dc-import name="Pill" variant="3" state="{{s.id}}" surface="light" accent="{{accent}}" accent2="{{accent2}}" hint-size="200px,56px"></dc-import>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#A78BFA","options":["#A78BFA","#FB7185","#34D399","#FBBF24"]},"accent2":{"editor":"color","default":"#22D3EE","options":["#22D3EE","#F472B6","#06B6D4","#F97316"]},"$preview":{"width":760,"height":700}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      accent: this.props.accent ?? '#A78BFA',
+      accent2: this.props.accent2 ?? '#22D3EE',
+      states: [
+        { id: 'listening', label: 'Listening' },
+        { id: 'thinking', label: 'Thinking' },
+        { id: 'success', label: 'Pasted' },
+        { id: 'cancelled', label: 'Cancelled (Esc)' },
+        { id: 'noSpeech', label: 'Nothing heard' },
+        { id: 'copied', label: 'No text field' },
+        { id: 'error', label: 'Error' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

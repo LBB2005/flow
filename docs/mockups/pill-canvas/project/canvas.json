@@ -1,0 +1,43 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-10-15T12:00:00Z"},
+  "title": "Flow Pill Designs",
+  "launch": {"view": "canvas"},
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 1400, "h": 800, "title": "Overview: six directions"},
+    "NotchA1.dc.html": {"x": 1480, "y": 0, "w": 1280, "h": 800, "title": "A1 · Calm Scroll", "is_interactive": true},
+    "NotchA2.dc.html": {"x": 2840, "y": 0, "w": 1280, "h": 800, "title": "A2 · Ripple", "is_interactive": true},
+    "NotchA3.dc.html": {"x": 4200, "y": 0, "w": 1280, "h": 800, "title": "A3 · Breathing Hill", "is_interactive": true},
+    "NotchA.dc.html": {"x": 0, "y": 5300, "w": 1280, "h": 800, "title": "Earlier: Notch A · Slim Wings (fast waves)", "is_interactive": true},
+    "NotchB.dc.html": {"x": 1360, "y": 5300, "w": 1280, "h": 800, "title": "Earlier: Notch B · Drop", "is_interactive": true},
+    "NotchC.dc.html": {"x": 2720, "y": 5300, "w": 1280, "h": 800, "title": "Earlier: Notch C · Floating Capsule", "is_interactive": true},
+    "Notch.dc.html": {"x": 540, "y": 4140, "w": 1280, "h": 800, "title": "Component: notch prototype", "is_interactive": true},
+    "Option1.dc.html": {"x": 0, "y": 1260, "w": 760, "h": 700, "title": "1 · Midnight Capsule"},
+    "Option2.dc.html": {"x": 840, "y": 1260, "w": 760, "h": 700, "title": "2 · Quiet Dot"},
+    "Option3.dc.html": {"x": 1680, "y": 1260, "w": 760, "h": 700, "title": "3 · Aurora Glass"},
+    "Option4.dc.html": {"x": 0, "y": 2080, "w": 760, "h": 700, "title": "4 · Island"},
+    "Option5.dc.html": {"x": 840, "y": 2080, "w": 760, "h": 700, "title": "5 · Ink"},
+    "Option6.dc.html": {"x": 1680, "y": 2080, "w": 760, "h": 700, "title": "6 · Orb"},
+    "Colors.dc.html": {"x": 0, "y": 3240, "w": 1180, "h": 780, "title": "Colour palettes"},
+    "Layout.dc.html": {"x": 1260, "y": 3240, "w": 1440, "h": 640, "title": "Position and size"},
+    "Pill.dc.html": {"x": 0, "y": 4140, "w": 320, "h": 80, "title": "Component: Pill"},
+    "Icon.dc.html": {"x": 400, "y": 4140, "w": 60, "h": 60, "title": "Component: Icon"}
+  },
+  "order": [
+    "Main.dc.html",
+    "NotchA1.dc.html", "NotchA2.dc.html", "NotchA3.dc.html",
+    "Option1.dc.html", "Option2.dc.html", "Option3.dc.html",
+    "Option4.dc.html", "Option5.dc.html", "Option6.dc.html",
+    "Colors.dc.html", "Layout.dc.html",
+    "Pill.dc.html", "Icon.dc.html", "Notch.dc.html",
+    "NotchA.dc.html", "NotchB.dc.html", "NotchC.dc.html"
+  ],
+  "notes": {
+    "notchTitle": {"x": 1480, "y": -300, "text": "Slim Wings: three calmer wave styles", "kind": "title1", "maxW": 4000},
+    "earlierTitle": {"x": 0, "y": 5060, "text": "Earlier notch iterations", "kind": "title1", "maxW": 4000},
+    "statesTitle": {"x": 0, "y": 1000, "text": "Every state, on dark and light apps", "kind": "title1", "maxW": 2440},
+    "colorTitle": {"x": 0, "y": 2980, "text": "Colours, position and size", "kind": "title1", "maxW": 2700}
+  },
+  "designSystems": []
+}

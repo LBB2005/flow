@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Flow icon</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<span style="display: inline-flex; width: {{px}}; height: {{px}}; color: {{color}}; flex: none">
+<sc-if value="{{isSuccess}}" hint-placeholder-val="{{false}}">
+<svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M8 12.5l2.6 2.6L16 9.6"></path></svg>
+</sc-if>
+<sc-if value="{{isCancelled}}" hint-placeholder-val="{{false}}">
+<svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9.2 9.2l5.6 5.6M14.8 9.2l-5.6 5.6"></path></svg>
+</sc-if>
+<sc-if value="{{isNoSpeech}}" hint-placeholder-val="{{false}}">
+<svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 10V6a3 3 0 0 0-5.6-1.5"></path><path d="M9 9v2a3 3 0 0 0 5 2.2"></path><path d="M19 11a7 7 0 0 1-1.1 3.8"></path><path d="M5 11a7 7 0 0 0 11.3 5.5"></path><path d="M12 18v3"></path><path d="M3.5 3.5l17 17"></path></svg>
+</sc-if>
+<sc-if value="{{isCopied}}" hint-placeholder-val="{{false}}">
+<svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8.5" y="3" width="7" height="4" rx="1.2"></rect><path d="M8.5 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1.5"></path></svg>
+</sc-if>
+<sc-if value="{{isError}}" hint-placeholder-val="{{false}}">
+<svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l9 16H3z"></path><path d="M12 10v4"></path><path d="M12 17.2v.1"></path></svg>
+</sc-if>
+<sc-if value="{{isMic}}" hint-placeholder-val="{{false}}">
+<svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><path d="M12 18v3"></path></svg>
+</sc-if>
+</span>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["success","cancelled","noSpeech","copied","error","mic"],"default":"success"},"color":{"editor":"color","default":"#30D158"},"size":{"editor":"int","default":16,"min":10,"max":40},"$preview":{"width":60,"height":60}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const kind = this.props.kind ?? 'success';
+    const size = Number(this.props.size ?? 16);
+    return {
+      px: size + 'px',
+      color: this.props.color ?? '#30D158',
+      isSuccess: kind === 'success',
+      isCancelled: kind === 'cancelled',
+      isNoSpeech: kind === 'noSpeech',
+      isCopied: kind === 'copied',
+      isError: kind === 'error',
+      isMic: kind === 'mic'
+    };
+  }
+}
+</script>
+</body>
+</html>

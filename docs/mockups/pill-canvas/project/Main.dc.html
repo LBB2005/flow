@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Flow pill directions</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 1400px; height: 800px; box-sizing: border-box; padding: 44px 48px; background: #0B0B0E; color: #F5F5F7; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif; display: flex; flex-direction: column; gap: 28px">
+<div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 12px; font-weight: 600; letter-spacing: 0.12em; color: #8E8E93">FLOW · DICTATION PILL</span>
+<h1 style="margin: 0; font-size: 40px; font-weight: 700; letter-spacing: -0.02em">Six directions</h1>
+</div>
+<span style="font-size: 14px; color: #A1A1A6">Listening on a dark app · result on a light app</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; flex-grow: 1">
+<sc-for list="{{options}}" as="o" hint-placeholder-count="6">
+<div style="border-radius: 16px; background: #16161B; border: 1px solid #26262E; padding: 18px; display: flex; flex-direction: column; gap: 12px; box-sizing: border-box">
+<div style="display: flex; align-items: baseline; gap: 10px">
+<span style="font-size: 13px; font-weight: 700; color: {{o.accent}}">{{o.n}}</span>
+<span style="font-size: 18px; font-weight: 650">{{o.name}}</span>
+</div>
+<span style="font-size: 13px; color: #A1A1A6; line-height: 1.4">{{o.tagline}}</span>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; flex-grow: 1">
+<div style="border-radius: 10px; background-color: #23232A; background-image: repeating-linear-gradient(180deg, rgba(255,255,255,0.04) 0 3px, transparent 3px 16px); display: flex; align-items: center; justify-content: center; min-height: 120px; overflow: hidden">
+<dc-import name="Pill" variant="{{o.v}}" state="listening" surface="dark" accent="{{o.accent}}" accent2="{{o.accent2}}" hint-size="200px,56px"></dc-import>
+</div>
+<div style="border-radius: 10px; background-color: #F2F1ED; background-image: repeating-linear-gradient(180deg, rgba(0,0,0,0.045) 0 3px, transparent 3px 16px); display: flex; align-items: center; justify-content: center; min-height: 120px; overflow: hidden">
+<dc-import name="Pill" variant="{{o.v}}" state="copied" surface="light" accent="{{o.accent}}" accent2="{{o.accent2}}" hint-size="200px,56px"></dc-import>
+</div>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1400,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      options: [
+        { n: '1', v: '1', name: 'Midnight Capsule', tagline: 'Near-black capsule, live bars. Closest to Wispr Flow.', accent: '#5BD3FF', accent2: '#3B82F6' },
+        { n: '2', v: '2', name: 'Quiet Dot', tagline: 'Small frosted pill with one pulsing dot. Barely there.', accent: '#0A84FF', accent2: '#5E5CE6' },
+        { n: '3', v: '3', name: 'Aurora Glass', tagline: 'macOS glass with a gradient waveform. Most expressive.', accent: '#A78BFA', accent2: '#22D3EE' },
+        { n: '4', v: '4', name: 'Island', tagline: 'Dynamic-Island style: mic, status and a timer.', accent: '#30D158', accent2: '#34D399' },
+        { n: '5', v: '5', name: 'Ink', tagline: 'Flat, high-contrast tag with a hard offset shadow.', accent: '#FF6B35', accent2: '#FBBF24' },
+        { n: '6', v: '6', name: 'Orb', tagline: 'Just a breathing orb; words appear only for results.', accent: '#7C9CFF', accent2: '#C084FC' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

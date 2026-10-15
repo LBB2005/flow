@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Flow pill</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.pill{display:inline-flex;align-items:center;gap:8px;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;font-size:13px;font-weight:500;line-height:1;white-space:nowrap;letter-spacing:-0.01em}
+.bars{display:flex;align-items:center;gap:3px;height:20px}
+.bars i{display:block;width:3px;height:20px;border-radius:2px;background:var(--accent);transform-origin:center;animation:flowbar 1.1s ease-in-out infinite}
+.wave{display:flex;align-items:center;gap:2px;height:22px}
+.wave i{display:block;width:2px;height:22px;border-radius:2px;background:linear-gradient(180deg,var(--accent),var(--accent2));transform-origin:center;animation:flowbar 1.3s ease-in-out infinite}
+@keyframes flowbar{0%,100%{transform:scaleY(.22)}50%{transform:scaleY(1)}}
+.spin{width:14px;height:14px;box-sizing:border-box;border-radius:50%;border:2px solid rgba(128,128,128,.28);border-top-color:var(--accent);animation:flowspin .8s linear infinite;flex:none}
+@keyframes flowspin{to{transform:rotate(360deg)}}
+.o1{height:36px;padding:0 14px;border-radius:18px;background:rgba(14,14,16,.92);border:1px solid rgba(255,255,255,.12);color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.o2{height:28px;padding:0 12px 0 10px;border-radius:14px;font-size:12px;background:rgba(255,255,255,.82);color:#1d1d1f;border:1px solid rgba(0,0,0,.08);box-shadow:0 4px 14px rgba(0,0,0,.12);backdrop-filter:blur(20px)}
+.o2.dark{background:rgba(48,48,54,.82);color:#f5f5f7;border-color:rgba(255,255,255,.1)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:flowpulse 1.3s ease-out infinite;flex:none}
+@keyframes flowpulse{0%{box-shadow:0 0 0 0 var(--accent)}100%{box-shadow:0 0 0 7px rgba(0,0,0,0)}}
+.o3{height:40px;padding:0 16px;border-radius:20px;color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.26);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 10px 30px rgba(0,0,0,.25);backdrop-filter:blur(24px) saturate(1.6)}
+.o3.light{color:#1d1d1f;background:rgba(255,255,255,.62);border-color:rgba(0,0,0,.08);box-shadow:inset 0 1px 0 #fff,0 10px 30px rgba(0,0,0,.12)}
+.o4{height:36px;min-width:226px;padding:0 14px 0 5px;border-radius:18px;background:#000;color:#fff;gap:10px;box-shadow:0 6px 20px rgba(0,0,0,.35)}
+.o4 .lead{width:26px;height:26px;border-radius:13px;display:flex;align-items:center;justify-content:center;flex:none}
+.o4 .msg{flex-grow:1}
+.o4 .time{font-variant-numeric:tabular-nums;color:rgba(255,255,255,.55);font-size:12px}
+.o4 .bars{height:14px;gap:2px}
+.o4 .bars i{width:2px;height:14px}
+.o5{height:34px;padding:0 14px;border-radius:9px;background:#fff;color:#111;border:1.5px solid #111;box-shadow:3px 3px 0 #111;font-weight:600}
+.o5.dark{background:#111;color:#fff;border-color:#f2f2f2;box-shadow:3px 3px 0 var(--accent)}
+.o5 .bars i{background:currentColor}
+.o6{gap:10px}
+.orb{position:relative;width:44px;height:44px;border-radius:50%;flex:none;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.85),var(--accent) 42%,var(--accent2) 100%);box-shadow:0 6px 22px rgba(0,0,0,.25)}
+.orb.live{animation:flowbreathe 1.4s ease-in-out infinite}
+@keyframes flowbreathe{0%,100%{transform:scale(.92)}50%{transform:scale(1.06)}}
+.ring{position:absolute;top:-6px;left:-6px;right:-6px;bottom:-6px;border-radius:50%;border:2px solid var(--accent);opacity:0;animation:flowring 1.6s ease-out infinite}
+@keyframes flowring{0%{transform:scale(.8);opacity:.7}100%{transform:scale(1.35);opacity:0}}
+.orb.busy{background:conic-gradient(var(--accent),var(--accent2),var(--accent));animation:flowspin 1.2s linear infinite}
+.core{position:absolute;top:5px;left:5px;right:5px;bottom:5px;border-radius:50%;background:#0d0f14;display:flex;align-items:center;justify-content:center}
+.tag{padding:7px 11px;border-radius:10px;background:rgba(16,16,20,.9);color:#fff;font-size:12px}
+.tag.light{background:#fff;color:#1d1d1f;box-shadow:0 4px 14px rgba(0,0,0,.12)}
+</style>
+</helmet>
+<div style="display: inline-flex; align-items: center; padding: 8px; --accent: {{accent}}; --accent2: {{accent2}}">
+<sc-if value="{{isStandard}}" hint-placeholder-val="{{true}}">
+<div class="{{pillClass}}">
+<sc-if value="{{barsLead}}" hint-placeholder-val="{{true}}">
+<span class="bars" aria-hidden="true"><i style="animation-delay: -0.1s"></i><i style="animation-delay: -0.55s"></i><i style="animation-delay: -0.3s"></i><i style="animation-delay: -0.85s"></i><i style="animation-delay: -0.2s"></i><i style="animation-delay: -0.7s"></i><i style="animation-delay: -0.45s"></i><i style="animation-delay: -0.95s"></i><i style="animation-delay: -0.15s"></i><i style="animation-delay: -0.6s"></i><i style="animation-delay: -0.35s"></i><i style="animation-delay: -0.8s"></i></span>
+</sc-if>
+<sc-if value="{{dotLead}}" hint-placeholder-val="{{false}}">
+<span class="dot" aria-hidden="true"></span>
+</sc-if>
+<sc-if value="{{waveLead}}" hint-placeholder-val="{{false}}">
+<span class="wave" aria-hidden="true"><i style="animation-delay: -0.1s"></i><i style="animation-delay: -0.25s"></i><i style="animation-delay: -0.4s"></i><i style="animation-delay: -0.55s"></i><i style="animation-delay: -0.7s"></i><i style="animation-delay: -0.85s"></i><i style="animation-delay: -1s"></i><i style="animation-delay: -1.15s"></i><i style="animation-delay: -1.3s"></i><i style="animation-delay: -0.2s"></i><i style="animation-delay: -0.35s"></i><i style="animation-delay: -0.5s"></i><i style="animation-delay: -0.65s"></i><i style="animation-delay: -0.8s"></i><i style="animation-delay: -0.95s"></i><i style="animation-delay: -1.1s"></i><i style="animation-delay: -1.25s"></i><i style="animation-delay: -0.05s"></i></span>
+</sc-if>
+<sc-if value="{{spinLead}}" hint-placeholder-val="{{false}}">
+<span class="spin" aria-hidden="true"></span>
+</sc-if>
+<sc-if value="{{iconLead}}" hint-placeholder-val="{{false}}">
+<dc-import name="Icon" kind="{{state}}" color="{{iconColor}}" size="16" hint-size="16px,16px"></dc-import>
+</sc-if>
+<sc-if value="{{hasMsg}}" hint-placeholder-val="{{true}}">
+<span>{{msg}}</span>
+</sc-if>
+</div>
+</sc-if>
+<sc-if value="{{isIsland}}" hint-placeholder-val="{{false}}">
+<div class="pill o4">
+<span class="lead" style="background: {{leadBg}}">
+<sc-if value="{{thinking}}" hint-placeholder-val="{{false}}">
+<span class="spin" aria-hidden="true"></span>
+</sc-if>
+<sc-if value="{{notThinking}}" hint-placeholder-val="{{true}}">
+<dc-import name="Icon" kind="{{islandIcon}}" color="{{leadColor}}" size="15" hint-size="15px,15px"></dc-import>
+</sc-if>
+</span>
+<span class="msg">{{islandMsg}}</span>
+<sc-if value="{{listening}}" hint-placeholder-val="{{false}}">
+<span class="bars" aria-hidden="true"><i style="animation-delay: -0.1s"></i><i style="animation-delay: -0.55s"></i><i style="animation-delay: -0.3s"></i><i style="animation-delay: -0.85s"></i><i style="animation-delay: -0.2s"></i><i style="animation-delay: -0.7s"></i></span>
+<span class="time">0:03</span>
+</sc-if>
+</div>
+</sc-if>
+<sc-if value="{{isOrb}}" hint-placeholder-val="{{false}}">
+<div class="pill o6">
+<sc-if value="{{listening}}" hint-placeholder-val="{{false}}">
+<span class="orb live" aria-hidden="true"><span class="ring"></span></span>
+</sc-if>
+<sc-if value="{{thinking}}" hint-placeholder-val="{{false}}">
+<span class="orb busy" aria-hidden="true"><span class="core"></span></span>
+</sc-if>
+<sc-if value="{{settled}}" hint-placeholder-val="{{false}}">
+<span class="orb"><span class="core"><dc-import name="Icon" kind="{{state}}" color="{{iconColor}}" size="18" hint-size="18px,18px"></dc-import></span></span>
+</sc-if>
+<sc-if value="{{orbTag}}" hint-placeholder-val="{{false}}">
+<span class="{{tagClass}}">{{msg}}</span>
+</sc-if>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["1","2","3","4","5","6"],"default":"1"},"state":{"editor":"enum","options":["listening","thinking","success","cancelled","noSpeech","copied","error"],"default":"listening"},"surface":{"editor":"enum","options":["dark","light"],"default":"dark"},"accent":{"editor":"color","default":"#5BD3FF"},"accent2":{"editor":"color","default":"#8B5CF6"},"$preview":{"width":320,"height":80}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const v = Number(this.props.variant ?? 1);
+    const state = this.props.state ?? 'listening';
+    const surface = this.props.surface ?? 'dark';
+    const accent = this.props.accent ?? '#5BD3FF';
+    const accent2 = this.props.accent2 ?? '#8B5CF6';
+    const messages = {
+      listening: 'Listening',
+      thinking: 'Thinking…',
+      success: '',
+      cancelled: 'Cancelled',
+      noSpeech: "Didn't catch that",
+      copied: 'Copied, press ⌘V',
+      error: 'Transcription failed'
+    };
+    const colors = {
+      listening: accent,
+      thinking: accent,
+      success: '#30D158',
+      cancelled: surface === 'light' && v !== 4 && v !== 6 ? '#6E6E73' : '#A1A1A6',
+      noSpeech: '#FF9F0A',
+      copied: accent,
+      error: '#FF453A'
+    };
+    const msg = messages[state] ?? '';
+    const listening = state === 'listening';
+    const thinking = state === 'thinking';
+    const isOrb = v === 6;
+    const isIsland = v === 4;
+    const isStandard = !isOrb && !isIsland;
+    return {
+      accent,
+      accent2,
+      state,
+      msg,
+      hasMsg: msg.length > 0,
+      listening,
+      thinking,
+      notThinking: !thinking,
+      settled: !listening && !thinking,
+      isOrb,
+      isIsland,
+      isStandard,
+      pillClass: 'pill o' + v + ' ' + surface,
+      barsLead: isStandard && listening && (v === 1 || v === 5),
+      dotLead: isStandard && listening && v === 2,
+      waveLead: isStandard && listening && v === 3,
+      spinLead: isStandard && thinking,
+      iconLead: isStandard && !listening && !thinking,
+      iconColor: colors[state],
+      islandIcon: listening ? 'mic' : state,
+      islandMsg: state === 'success' ? 'Pasted' : msg,
+      leadBg: listening ? accent : 'rgba(255,255,255,0.12)',
+      leadColor: listening ? '#000000' : colors[state],
+      orbTag: msg.length > 0 && !listening && !thinking,
+      tagClass: 'tag ' + surface
+    };
+  }
+}
+</script>
+</body>
+</html>

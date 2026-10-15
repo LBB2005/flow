@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Flow notch prototype</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.notch{position:absolute;top:0;left:50%;transform:translateX(-50%);background:#000;overflow:hidden;transition:width .46s cubic-bezier(.2,.95,.25,1.15),height .46s cubic-bezier(.2,.95,.25,1.15),border-radius .46s ease;z-index:5}
+.cap{position:absolute;left:50%;height:36px;min-width:150px;padding:0 14px;box-sizing:border-box;border-radius:18px;background:rgba(10,10,12,.94);border:1px solid rgba(255,255,255,.12);box-shadow:0 10px 28px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;transform-origin:top center;transition:top .5s cubic-bezier(.2,.95,.25,1.2),opacity .3s ease,transform .5s cubic-bezier(.2,.95,.25,1.2);z-index:4}
+.wings{display:grid;grid-template-columns:minmax(0,1fr) 190px minmax(0,1fr);height:100%;align-items:center;color:#fff;font-size:12px;font-weight:500}
+.lw{display:flex;align-items:center;justify-content:flex-start;padding-left:14px;gap:6px}
+.rw{display:flex;align-items:center;justify-content:flex-end;padding-right:14px;gap:6px;white-space:nowrap}
+.drop{display:flex;flex-direction:column;height:100%;color:#fff;font-size:13px;font-weight:500}
+.row{display:flex;align-items:center;justify-content:center;gap:9px;white-space:nowrap;color:#fff;font-size:13px;font-weight:500}
+.fade{animation:flowfade .26s .16s both}
+@keyframes flowfade{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+.bars{display:flex;align-items:center;gap:3px}
+.bars i{display:block;width:3px;border-radius:2px;background:#5BD3FF;transition-property:height;transition-timing-function:cubic-bezier(.3,.7,.4,1)}
+.spin{width:13px;height:13px;box-sizing:border-box;border-radius:50%;border:2px solid rgba(255,255,255,.22);border-top-color:#5BD3FF;animation:flowspin .8s linear infinite;flex:none}
+@keyframes flowspin{to{transform:rotate(360deg)}}
+.rec{width:6px;height:6px;border-radius:50%;background:#FF453A;animation:flowblink 1.2s ease-in-out infinite;flex:none}
+@keyframes flowblink{0%,100%{opacity:1}50%{opacity:.3}}
+.time{font-variant-numeric:tabular-nums;color:rgba(255,255,255,.7)}
+.caret{display:inline-block;width:2px;height:17px;background:#0A84FF;vertical-align:-3px;margin-left:1px;animation:flowblink 1s steps(1) infinite}
+.key{appearance:none;border:0;cursor:pointer;font:inherit}
+.key:focus-visible{outline:2px solid #5BD3FF;outline-offset:2px}
+.vol{accent-color:#5BD3FF;width:120px}
+</style>
+</helmet>
+<div style="position: relative; width: 1280px; height: 800px; overflow: hidden; background-color: #1B1D25; background-image: radial-gradient(circle at 20% 110%, #2A3350 0, transparent 55%), radial-gradient(circle at 90% -10%, #3A2B45 0, transparent 50%); font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif; color: #F5F5F7">
+<div style="position: absolute; left: 0; right: 0; top: 0; height: 34px; background: rgba(16,16,20,0.78); display: flex; align-items: center; justify-content: space-between; padding: 0 18px; box-sizing: border-box; font-size: 13px; z-index: 3">
+<div style="display: flex; gap: 20px; align-items: center">
+<span style="font-weight: 700">Chat</span>
+<span>File</span>
+<span>Edit</span>
+<span>View</span>
+<span>Window</span>
+</div>
+<div style="display: flex; gap: 16px; align-items: center">
+<span style="display: inline-flex; width: 16px; height: 16px; color: {{menuIconColor}}" role="img" aria-label="Flow menu bar icon"><svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4"></path></svg></span>
+<span>Wed 15 Oct  9:41</span>
+</div>
+</div>
+<div class="notch" style="width: {{nw}}; height: {{nh}}; border-radius: {{nr}}">
+<sc-if value="{{showA}}" hint-placeholder-val="{{false}}">
+<div class="wings fade">
+<div class="lw">
+<sc-if value="{{listening}}" hint-placeholder-val="{{false}}">
+<span class="bars" style="height: 16px" aria-hidden="true">
+<sc-for list="{{barsA}}" as="b" hint-placeholder-count="7"><i style="height: {{b.h}}; transition-duration: {{barMs}}"></i></sc-for>
+</span>
+</sc-if>
+<sc-if value="{{thinking}}" hint-placeholder-val="{{false}}"><span class="spin" aria-hidden="true"></span></sc-if>
+<sc-if value="{{pasted}}" hint-placeholder-val="{{false}}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#30D158" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M8 12.5l2.6 2.6L16 9.6"></path></svg></sc-if>
+<sc-if value="{{copied}}" hint-placeholder-val="{{false}}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#5BD3FF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8.5" y="3" width="7" height="4" rx="1.2"></rect><path d="M8.5 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1.5"></path></svg></sc-if>
+<sc-if value="{{cancelled}}" hint-placeholder-val="{{false}}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#A1A1A6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9.2 9.2l5.6 5.6M14.8 9.2l-5.6 5.6"></path></svg></sc-if>
+</div>
+<div></div>
+<div class="rw">
+<sc-if value="{{listening}}" hint-placeholder-val="{{false}}"><span class="rec" aria-hidden="true"></span><span class="time">{{timeLabel}}</span></sc-if>
+<sc-if value="{{notListening}}" hint-placeholder-val="{{false}}"><span>{{shortLabel}}</span></sc-if>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{showB}}" hint-placeholder-val="{{false}}">
+<div class="drop fade">
+<div style="height: 32px; flex: none"></div>
+<div class="row" style="flex-grow: 1; padding-bottom: 4px">
+<sc-if value="{{listening}}" hint-placeholder-val="{{false}}">
+<span class="bars" style="height: 20px" aria-hidden="true">
+<sc-for list="{{barsB}}" as="b" hint-placeholder-count="12"><i style="height: {{b.h}}; transition-duration: {{barMs}}"></i></sc-for>
+</span>
+<span class="rec" aria-hidden="true"></span><span class="time">{{timeLabel}}</span>
+</sc-if>
+<sc-if value="{{thinking}}" hint-placeholder-val="{{false}}"><span class="spin" aria-hidden="true"></span><span>Thinking…</span></sc-if>
+<sc-if value="{{pasted}}" hint-placeholder-val="{{false}}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#30D158" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M8 12.5l2.6 2.6L16 9.6"></path></svg><span>Pasted</span></sc-if>
+<sc-if value="{{copied}}" hint-placeholder-val="{{false}}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#5BD3FF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8.5" y="3" width="7" height="4" rx="1.2"></rect><path d="M8.5 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1.5"></path></svg><span>Press ⌘V</span></sc-if>
+<sc-if value="{{cancelled}}" hint-placeholder-val="{{false}}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#A1A1A6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9.2 9.2l5.6 5.6M14.8 9.2l-5.6 5.6"></path></svg><span>Cancelled</span></sc-if>
+</div>
+</div>
+</sc-if>
+</div>
+<sc-if value="{{isC}}" hint-placeholder-val="{{false}}">
+<div class="cap" style="top: {{capTop}}; opacity: {{capOpacity}}; transform: translateX(-50%) scale({{capScale}})">
+<div class="row">
+<sc-if value="{{listening}}" hint-placeholder-val="{{false}}">
+<span class="bars" style="height: 18px" aria-hidden="true">
+<sc-for list="{{barsC}}" as="b" hint-placeholder-count="9"><i style="height: {{b.h}}; transition-duration: {{barMs}}"></i></sc-for>
+</span>
+<span class="rec" aria-hidden="true"></span><span class="time">{{timeLabel}}</span>
+</sc-if>
+<sc-if value="{{thinking}}" hint-placeholder-val="{{false}}"><span class="spin" aria-hidden="true"></span><span>Thinking…</span></sc-if>
+<sc-if value="{{pasted}}" hint-placeholder-val="{{false}}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#30D158" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M8 12.5l2.6 2.6L16 9.6"></path></svg><span>Pasted</span></sc-if>
+<sc-if value="{{copied}}" hint-placeholder-val="{{false}}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#5BD3FF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8.5" y="3" width="7" height="4" rx="1.2"></rect><path d="M8.5 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1.5"></path></svg><span>Press ⌘V</span></sc-if>
+<sc-if value="{{cancelled}}" hint-placeholder-val="{{false}}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#A1A1A6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9.2 9.2l5.6 5.6M14.8 9.2l-5.6 5.6"></path></svg><span>Cancelled</span></sc-if>
+</div>
+</div>
+</sc-if>
+<div style="position: absolute; left: 240px; top: 112px; width: 800px; height: 450px; border-radius: 14px; background: #FFFFFF; color: #1D1D1F; box-shadow: 0 30px 80px rgba(0,0,0,0.45); display: flex; flex-direction: column; overflow: hidden">
+<div style="height: 40px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 16px; border-bottom: 1px solid #ECECEF; background: #F7F7F8">
+<span style="width: 12px; height: 12px; border-radius: 6px; background: #FF5F57"></span>
+<span style="width: 12px; height: 12px; border-radius: 6px; background: #FEBC2E"></span>
+<span style="width: 12px; height: 12px; border-radius: 6px; background: #28C840"></span>
+<span style="flex-grow: 1; text-align: center; font-size: 13px; color: #6E6E73; margin-right: 52px">New chat</span>
+</div>
+<button class="key" onClick="{{blurBox}}" aria-label="Conversation (click to move focus out of the message box)" style="flex-grow: 1; display: flex; flex-direction: column; gap: 14px; padding: 24px 40px; background: #FFFFFF; text-align: left">
+<span style="align-self: flex-end; max-width: 60%; padding: 10px 14px; border-radius: 16px; background: #F0F0F3; font-size: 14px; line-height: 1.45">Here's the stack trace from the failing deploy.</span>
+<span style="display: flex; flex-direction: column; gap: 8px; width: 70%">
+<span style="height: 9px; border-radius: 5px; background: #ECECEF; width: 100%"></span>
+<span style="height: 9px; border-radius: 5px; background: #ECECEF; width: 92%"></span>
+<span style="height: 9px; border-radius: 5px; background: #ECECEF; width: 64%"></span>
+</span>
+</button>
+<div style="padding: 0 32px 24px; flex: none">
+<button class="key" onClick="{{focusBox}}" aria-label="Message box (click to focus it)" style="width: 100%; min-height: 92px; box-sizing: border-box; border-radius: 16px; padding: 14px 16px; text-align: left; font-size: 15px; line-height: 1.5; background: #FFFFFF; border: 1.5px solid {{boxBorder}}; box-shadow: {{boxRing}}; color: #1D1D1F; display: block">
+<sc-if value="{{hasText}}" hint-placeholder-val="{{false}}"><span>{{text}}</span></sc-if>
+<sc-if value="{{noText}}" hint-placeholder-val="{{true}}"><span style="color: #8E8E93">Ask anything…</span></sc-if>
+<sc-if value="{{focused}}" hint-placeholder-val="{{true}}"><span class="caret" aria-hidden="true"></span></sc-if>
+</button>
+</div>
+</div>
+<div style="position: absolute; left: 240px; top: 576px; width: 800px; min-height: 36px; display: flex; align-items: center; gap: 10px; font-size: 13px">
+<sc-if value="{{hasHeard}}" hint-placeholder-val="{{false}}">
+<span style="font-weight: 600; color: #8E8E93; letter-spacing: 0.06em; font-size: 11px">YOU SAID</span>
+<span style="font-style: italic; color: #A1A1A6">“{{heard}}”</span>
+</sc-if>
+</div>
+<div style="position: absolute; left: 50%; bottom: 32px; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 18px; background: rgba(28,28,34,0.9); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 12px 40px rgba(0,0,0,0.4); white-space: nowrap">
+<button class="key" onClick="{{toggle}}" style="display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 18px; border-radius: 12px; background: {{primaryBg}}; color: {{primaryFg}}; font-size: 15px; font-weight: 600">
+<span style="display: inline-flex; align-items: center; justify-content: center; min-width: 38px; height: 28px; padding: 0 6px; border-radius: 6px; background: rgba(0,0,0,0.18); font-size: 14px">⌥ R</span>
+<span>{{primaryLabel}}</span>
+</button>
+<button class="key" onClick="{{escape}}" style="min-height: 48px; padding: 0 14px; border-radius: 12px; background: rgba(255,255,255,0.08); color: #F5F5F7; font-size: 14px; font-weight: 600">Esc</button>
+<button class="key" onClick="{{demo}}" style="min-height: 48px; padding: 0 14px; border-radius: 12px; background: rgba(255,255,255,0.08); color: #F5F5F7; font-size: 14px; font-weight: 600">▶ Auto demo</button>
+<button class="key" onClick="{{reset}}" style="min-height: 48px; padding: 0 14px; border-radius: 12px; background: rgba(255,255,255,0.08); color: #F5F5F7; font-size: 14px; font-weight: 600">Clear</button>
+<label for="{{volId}}" style="display: flex; align-items: center; gap: 8px; padding: 0 6px 0 8px; font-size: 12px; color: #C7C7CC">
+<span>Your voice</span>
+<span style="color: #8E8E93">quiet</span>
+<input id="{{volId}}" class="vol" type="range" min="0" max="100" value="{{volPct}}" onChange="{{onVol}}">
+<span style="color: #8E8E93">loud</span>
+</label>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["a","b","c"],"default":"a"},"wave":{"editor":"enum","options":["scroll","ripple","mirror"],"default":"scroll","section":"Waveform"},"sampleMs":{"editor":"int","default":70,"min":40,"max":250,"unit":"ms","section":"Waveform"},"smooth":{"editor":"range","default":1,"min":0.1,"max":1,"step":0.05,"section":"Waveform"},"barMs":{"editor":"int","default":70,"min":40,"max":400,"unit":"ms","section":"Waveform"},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  componentWillUnmount() { this.stopAll(); }
+
+  stopAll() { this.clearTimers(); this.clearDemo(); }
+
+  clearTimers() {
+    if (this.tick) clearInterval(this.tick);
+    if (this.meter) clearInterval(this.meter);
+    if (this.t1) clearTimeout(this.t1);
+    if (this.t2) clearTimeout(this.t2);
+    this.tick = null; this.meter = null; this.t1 = null; this.t2 = null;
+  }
+
+  clearDemo() {
+    (this.demoTimers || []).forEach((id) => clearTimeout(id));
+    this.demoTimers = [];
+  }
+
+  st() {
+    const s = this.state || {};
+    return {
+      phase: s.phase ?? 'idle',
+      seconds: s.seconds ?? 0,
+      focused: s.focused ?? true,
+      text: s.text ?? '',
+      heard: s.heard ?? '',
+      result: s.result ?? 'pasted',
+      take: s.take ?? 0,
+      volume: s.volume ?? 0.55,
+      hist: s.hist ?? new Array(16).fill(0)
+    };
+  }
+
+  start() {
+    this.clearTimers();
+    this.clock = 0;
+    this.setState({ phase: 'listening', seconds: 0, hist: new Array(16).fill(0) });
+    this.tick = setInterval(() => this.setState({ seconds: this.st().seconds + 1 }), 1000);
+    this.meter = setInterval(() => this.sample(), Number(this.props.sampleMs ?? 70));
+  }
+
+  /* Simulated mic loudness: syllable rhythm x the "Your voice" volume, with short pauses. */
+  sample() {
+    this.clock = (this.clock || 0) + Number(this.props.sampleMs ?? 70) / 1000;
+    const t = this.clock;
+    const s = this.st();
+    const syllables = Math.abs(Math.sin(t * 8.3) * Math.sin(t * 3.1 + 1));
+    const pause = Math.sin(t * 1.3) > 0.82 ? 0.1 : 1;
+    let level = s.volume * (0.2 + 0.8 * syllables) * pause + Math.random() * 0.05 * s.volume;
+    level = Math.max(0, Math.min(1, level));
+    /* Smoothing: 1 = raw (twitchy), lower = calmer bars that ease toward the new level. */
+    const alpha = Number(this.props.smooth ?? 1);
+    const prev = s.hist[s.hist.length - 1] ?? 0;
+    this.setState({ hist: s.hist.slice(1).concat([prev + alpha * (level - prev)]) });
+  }
+
+  stop() {
+    this.clearTimers();
+    this.setState({ phase: 'thinking' });
+    this.t1 = setTimeout(() => {
+      const s = this.st();
+      const samples = [
+        { raw: 'um so can you uh help me refactor the the login function so it uses async await', clean: 'Can you help me refactor the login function so it uses async/await?' },
+        { raw: 'okay so the deploy fails on tuesday no wait wednesday builds when the cache is cold', clean: 'The deploy fails on Wednesday builds when the cache is cold.' },
+        { raw: 'write me a short summary of this stack trace and uh tell me what file to look at first', clean: 'Write me a short summary of this stack trace and tell me what file to look at first.' }
+      ];
+      const sample = samples[s.take % samples.length];
+      const pasted = s.focused;
+      const nextText = pasted ? (s.text ? s.text + ' ' + sample.clean : sample.clean) : s.text;
+      this.setState({ phase: 'done', result: pasted ? 'pasted' : 'copied', text: nextText, heard: sample.raw, take: s.take + 1 });
+      this.t2 = setTimeout(() => this.setState({ phase: 'idle' }), pasted ? 1400 : 2600);
+    }, 1000);
+  }
+
+  /* wave: scroll = history slides right-to-left; ripple = newest level in the centre, flowing outward;
+     mirror = one level shaped like a hill, tallest in the middle. */
+  bars(count, maxPx) {
+    const mode = this.props.wave ?? 'scroll';
+    const hist = this.st().hist;
+    const newest = hist.length - 1;
+    const centre = (count - 1) / 2;
+    const out = [];
+    for (let i = 0; i < count; i++) {
+      let level;
+      if (mode === 'ripple') {
+        level = hist[newest - Math.round(Math.abs(i - centre) * 1.5)] ?? 0;
+      } else if (mode === 'mirror') {
+        const d = Math.abs(i - centre) / (centre || 1);
+        level = (hist[newest] ?? 0) * (1 - 0.6 * d * d);
+      } else {
+        level = hist[newest - (count - 1 - i)] ?? 0;
+      }
+      const shaped = Math.min(1, level * (0.85 + 0.15 * Math.abs(Math.sin(i * 1.9))));
+      out.push({ h: Math.round(3 + shaped * (maxPx - 3)) + 'px' });
+    }
+    return out;
+  }
+
+  renderVals() {
+    const s = this.st();
+    const v = this.props.variant ?? 'a';
+    const phase = s.phase;
+    const active = phase !== 'idle';
+    const listening = phase === 'listening';
+    const thinking = phase === 'thinking';
+    const done = phase === 'done';
+    const cancelled = phase === 'cancelled';
+    const pasted = done && s.result === 'pasted';
+    const copied = done && s.result === 'copied';
+    let nw = '190px', nh = '32px', nr = '0 0 12px 12px';
+    if (active && v === 'a') { nw = '340px'; nh = '34px'; nr = '0 0 16px 16px'; }
+    if (active && v === 'b') { nw = '236px'; nh = '68px'; nr = '0 0 24px 24px'; }
+    const sec = s.seconds;
+    return {
+      nw, nh, nr,
+      showA: active && v === 'a',
+      showB: active && v === 'b',
+      isC: v === 'c',
+      capTop: active ? '42px' : '2px',
+      capOpacity: active ? 1 : 0,
+      capScale: active ? 1 : 0.5,
+      listening, notListening: !listening, thinking, pasted, copied, cancelled,
+      shortLabel: thinking ? 'Thinking' : pasted ? 'Pasted' : copied ? '⌘V' : cancelled ? 'Esc' : '',
+      barMs: Number(this.props.barMs ?? 70) + 'ms',
+      barsA: this.bars(7, 16),
+      barsB: this.bars(12, 20),
+      barsC: this.bars(9, 18),
+      timeLabel: Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0'),
+      menuIconColor: listening ? '#5BD3FF' : '#F5F5F7',
+      text: s.text,
+      hasText: s.text.length > 0,
+      noText: s.text.length === 0,
+      heard: s.heard,
+      hasHeard: s.heard.length > 0 && (done || phase === 'idle'),
+      focused: s.focused,
+      boxBorder: s.focused ? '#0A84FF' : '#D1D1D6',
+      boxRing: s.focused ? '0 0 0 4px rgba(10,132,255,0.18)' : 'none',
+      primaryBg: listening ? '#FF453A' : '#5BD3FF',
+      primaryFg: listening ? '#FFFFFF' : '#06121A',
+      primaryLabel: listening ? 'Tap to stop' : thinking ? 'Working…' : 'Tap to dictate',
+      volId: 'vol-' + v,
+      volPct: Math.round(s.volume * 100),
+      onVol: (e) => this.setState({ volume: Number(e.target.value) / 100 }),
+      toggle: () => {
+        this.clearDemo();
+        const p = this.st().phase;
+        if (p === 'listening') this.stop();
+        else if (p !== 'thinking') this.start();
+      },
+      escape: () => {
+        if (this.st().phase !== 'listening') return;
+        this.clearDemo();
+        this.clearTimers();
+        this.setState({ phase: 'cancelled' });
+        this.t2 = setTimeout(() => this.setState({ phase: 'idle' }), 1300);
+      },
+      demo: () => {
+        this.stopAll();
+        this.setState({ phase: 'idle', focused: true, volume: 0.2 });
+        const at = (ms, fn) => this.demoTimers.push(setTimeout(fn, ms));
+        at(400, () => this.start());
+        at(1700, () => this.setState({ volume: 0.55 }));
+        at(2900, () => this.setState({ volume: 1 }));
+        at(3700, () => this.setState({ volume: 0.45 }));
+        at(4800, () => this.stop());
+      },
+      reset: () => {
+        this.stopAll();
+        this.setState({ phase: 'idle', seconds: 0, text: '', heard: '' });
+      },
+      focusBox: () => this.setState({ focused: true }),
+      blurBox: () => this.setState({ focused: false })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Flow colour palettes</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 1180px; height: 780px; box-sizing: border-box; padding: 28px 32px; background: #0E0E11; color: #F5F5F7; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: baseline; gap: 12px">
+<span style="font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: #8E8E93">COLOUR</span>
+<h1 style="margin: 0; font-size: 26px; font-weight: 650; letter-spacing: -0.01em">Eight palettes, any style</h1>
+</div>
+<div style="display: flex; gap: 10px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #8E8E93; padding-left: 210px">
+<span style="flex: 1 1 0">1 · CAPSULE</span>
+<span style="flex: 1 1 0">2 · DOT (LIGHT APP)</span>
+<span style="flex: 1 1 0">3 · AURORA</span>
+<span style="flex: 1 1 0">6 · ORB</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{palettes}}" as="p" hint-placeholder-count="8">
+<div style="display: flex; gap: 10px; align-items: stretch; height: 70px">
+<div style="width: 200px; flex: none; display: flex; align-items: center; gap: 12px">
+<span style="display: flex; flex: none">
+<span style="width: 22px; height: 22px; border-radius: 11px; background: {{p.a}}; border: 2px solid #0E0E11"></span>
+<span style="width: 22px; height: 22px; border-radius: 11px; background: {{p.b}}; border: 2px solid #0E0E11; margin-left: -8px"></span>
+</span>
+<span style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 14px; font-weight: 600">{{p.name}}</span>
+<span style="font-size: 11px; color: #8E8E93; font-family: ui-monospace, 'SF Mono', Menlo, monospace">{{p.a}} · {{p.b}}</span>
+</span>
+</div>
+<div style="flex: 1 1 0; border-radius: 10px; background-color: #1E1E24; display: flex; align-items: center; justify-content: center; overflow: hidden">
+<dc-import name="Pill" variant="1" state="listening" surface="dark" accent="{{p.a}}" accent2="{{p.b}}" hint-size="200px,56px"></dc-import>
+</div>
+<div style="flex: 1 1 0; border-radius: 10px; background-color: #F2F1ED; display: flex; align-items: center; justify-content: center; overflow: hidden">
+<dc-import name="Pill" variant="2" state="listening" surface="light" accent="{{p.a}}" accent2="{{p.b}}" hint-size="160px,48px"></dc-import>
+</div>
+<div style="flex: 1 1 0; border-radius: 10px; background-color: #1E1E24; display: flex; align-items: center; justify-content: center; overflow: hidden">
+<dc-import name="Pill" variant="3" state="listening" surface="dark" accent="{{p.a}}" accent2="{{p.b}}" hint-size="220px,56px"></dc-import>
+</div>
+<div style="flex: 1 1 0; border-radius: 10px; background-color: #1E1E24; display: flex; align-items: center; justify-content: center; overflow: hidden">
+<dc-import name="Pill" variant="6" state="listening" surface="dark" accent="{{p.a}}" accent2="{{p.b}}" hint-size="60px,60px"></dc-import>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1180,"height":780}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      palettes: [
+        { name: 'Glacier', a: '#5BD3FF', b: '#3B82F6' },
+        { name: 'Iris', a: '#A78BFA', b: '#22D3EE' },
+        { name: 'Mint', a: '#34D399', b: '#06B6D4' },
+        { name: 'Sunbeam', a: '#FBBF24', b: '#F97316' },
+        { name: 'Coral', a: '#FB7185', b: '#F472B6' },
+        { name: 'Clay', a: '#E08A64', b: '#F2C19B' },
+        { name: 'Signal', a: '#0A84FF', b: '#5E5CE6' },
+        { name: 'Graphite', a: '#E5E5EA', b: '#8E8E93' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
