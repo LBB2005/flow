@@ -1,7 +1,7 @@
 # Flow — Design Spec
 
 **Date:** 2026-10-15
-**Status:** Approved in conversation, awaiting written-spec review
+**Status:** Approved (2026-10-15)
 
 ## 1. Purpose
 
