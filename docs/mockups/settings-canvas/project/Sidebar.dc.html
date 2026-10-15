@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings C: sidebar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 920px; height: 640px">
+<dc-import name="Settings" layout="c" appearance="{{appearance}}" accessibility-missing="{{axMissing}}" hint-size="920px,640px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"appearance":{"editor":"enum","options":["dark","light"],"default":"dark"},"accessibilityMissing":{"editor":"boolean","default":false},"$preview":{"width":920,"height":640}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { appearance: this.props.appearance ?? 'dark', axMissing: this.props.accessibilityMissing ?? false };
+  }
+}
+</script>
+</body>
+</html>

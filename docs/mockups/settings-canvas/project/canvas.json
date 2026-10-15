@@ -1,0 +1,16 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-10-15T23:40:00Z"},
+  "title": "Flow Settings Designs",
+  "launch": {"view": "canvas"},
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 760, "h": 900, "title": "A · Single grouped form", "is_interactive": true},
+    "Tabs.dc.html": {"x": 840, "y": 0, "w": 760, "h": 640, "title": "B · Tabs", "is_interactive": true},
+    "Sidebar.dc.html": {"x": 1680, "y": 0, "w": 920, "h": 640, "title": "C · Sidebar", "is_interactive": true},
+    "Settings.dc.html": {"x": 0, "y": 1020, "w": 760, "h": 900, "title": "Component: settings window", "is_interactive": true}
+  },
+  "order": ["Main.dc.html", "Tabs.dc.html", "Sidebar.dc.html", "Settings.dc.html"],
+  "notes": {},
+  "designSystems": []
+}
