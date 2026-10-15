@@ -60,6 +60,7 @@ actor MLXCleaner: Cleaner, ModelBackend {
         let session = ChatSession(
             container,
             instructions: CleanupPrompt.system,
+            history: Self.fewShotHistory,
             generateParameters: GenerateParameters(maxTokens: Self.maxTokens(for: transcript), temperature: 0),
             additionalContext: ["enable_thinking": false])
         var output = ""
@@ -68,6 +69,13 @@ actor MLXCleaner: Cleaner, ModelBackend {
             output += chunk
         }
         return Self.stripThinking(output)
+    }
+
+    /// The prompt's worked examples as prior chat turns, so the model sees the exact input → output shape.
+    static var fewShotHistory: [Chat.Message] {
+        CleanupPrompt.examples.flatMap { example -> [Chat.Message] in
+            [.user(CleanupPrompt.userMessage(for: example.transcript)), .assistant(example.cleaned)]
+        }
     }
 
     /// Roughly 1 token ≈ 4 chars. Allows ~2× the input, capped at 2048.

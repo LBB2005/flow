@@ -17,8 +17,9 @@ test: gen
 	$(XCB) test -quiet $(if $(ONLY),-only-testing:FlowTests/$(ONLY))
 
 # Real-model tests (downloads ~1.6 GB on first run).
+# EVAL_MODEL=<hf repo> runs CleanupEvalTests against another cleanup model.
 test-models: gen
-	TEST_RUNNER_FLOW_MODEL_TESTS=1 $(XCB) test -quiet $(if $(ONLY),-only-testing:FlowTests/$(ONLY))
+	TEST_RUNNER_FLOW_MODEL_TESTS=1 $(if $(EVAL_MODEL),TEST_RUNNER_FLOW_EVAL_MODEL=$(EVAL_MODEL)) $(XCB) test -quiet $(if $(ONLY),-only-testing:FlowTests/$(ONLY))
 
 run: build
 	-pkill -x Flow
