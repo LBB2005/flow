@@ -1,0 +1,9 @@
+#!/bin/bash
+# Usage: scripts/commit "message" [paths...]
+# Stages the given paths (if any) and commits with the required trailers.
+set -euo pipefail
+msg="$1"; shift
+if [ $# -gt 0 ]; then git add "$@"; fi
+git commit -m "$msg" \
+  --trailer "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" \
+  --trailer "Claude-Session: https://claude.ai/code/session_018Cqj3JKViUBZc5E8FyCZHS"

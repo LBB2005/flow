@@ -4,3 +4,5 @@ build/
 .DS_Store
 *.xcuserstate
 xcuserdata/
+Flow/Resources/Info.plist
+Flow/Resources/Flow.entitlements

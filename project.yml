@@ -1,0 +1,65 @@
+name: Flow
+options:
+  bundleIdPrefix: com.liamblackshawbrown
+  deploymentTarget:
+    macOS: "26.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    ARCHS: arm64
+    MACOSX_DEPLOYMENT_TARGET: "26.0"
+    ENABLE_HARDENED_RUNTIME: NO
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "-"
+    DEVELOPMENT_TEAM: ""
+    OTHER_CODE_SIGN_FLAGS: "--timestamp=none"
+targets:
+  Flow:
+    type: application
+    platform: macOS
+    sources:
+      - path: Flow
+    info:
+      path: Flow/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: Flow
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        LSUIElement: true
+        LSMinimumSystemVersion: "26.0"
+        NSMicrophoneUsageDescription: "Flow records your voice while you hold the dictation hotkey and transcribes it on this Mac."
+    entitlements:
+      path: Flow/Resources/Flow.entitlements
+      properties:
+        com.apple.security.app-sandbox: false
+        com.apple.security.device.audio-input: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.liamblackshawbrown.flow
+        PRODUCT_NAME: Flow
+  FlowTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: FlowTests
+    dependencies:
+      - target: Flow
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.liamblackshawbrown.flow.tests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Flow.app/Contents/MacOS/Flow"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+schemes:
+  Flow:
+    build:
+      targets:
+        Flow: all
+        FlowTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - FlowTests
