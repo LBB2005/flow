@@ -33,12 +33,13 @@ Wispr Flow.
 
 ### In v1
 
-- Push-to-talk on a global hotkey (default: **Right Option**, held).
+- Push-to-talk on a global hotkey (default: **Right Option**, held), changeable
+  at any time from settings via a "Record shortcut" field (see §3.2).
 - Floating overlay "pill" showing listening / processing / result states.
 - Local transcription with Whisper (WhisperKit).
 - Local cleanup with a small open model (Qwen 3 1.7B, 4-bit, via MLX Swift).
 - Paste into the focused app, restoring the previous clipboard.
-- Menu bar icon with a settings window: hotkey, microphone, Whisper model
+- Menu bar icon with a settings window: hotkey recorder, microphone, Whisper model
   (large-v3-turbo default, or a smaller/faster variant), cleanup model
   (Qwen3 1.7B default, or Qwen3 4B for better quality), cleanup on/off,
   keep-warm time (2 min / **10 min default** / 30 min / Always).
@@ -59,15 +60,56 @@ added later without restructuring.
 
 ## 3. User experience
 
+### 3.1 Dictation
+
 1. Flow runs as a menu-bar-only app (`LSUIElement`, no Dock icon, no main window).
-2. In any app the user **holds Right ⌥** and speaks. A pill appears bottom-centre
+2. In any app the user **holds the hotkey** (default Right ⌥) and speaks. A pill appears bottom-centre
    of the active screen with a live audio-level waveform.
 3. On **release**, the pill switches to a "thinking" state.
 4. The cleaned text is pasted at the cursor. The pill briefly confirms, then hides.
 5. The overlay is a non-activating panel. It never steals focus from the
    target app.
 
-### Cleanup behaviour: "Clean + light format"
+### 3.2 Changing the hotkey
+
+- Settings has a **"Record shortcut"** field. Click it, press the desired key or
+  combo, and it is saved and applied immediately (no restart).
+- Supported shortcuts:
+  - **Single modifier held alone:** Right ⌥, Left ⌥, Right ⌘, Right ⌃, Right ⇧,
+    Fn/🌐. Side-specific where macOS reports it.
+  - **Combo:** one or more modifiers plus one key (e.g. ⌃Space, ⌥⌘D). The combo's
+    key-down events are swallowed so they don't also type into the target app.
+- Rejected / warned: plain letter or number keys with no modifier (rejected);
+  combos that clash with well-known system shortcuts such as ⌘Space, ⌘Tab
+  or ⌘Q (warning, user can still save). Fn/🌐 shows a note to set
+  System Settings → Keyboard → "Press 🌐 key to" → "Do Nothing".
+- "Reset to default" button restores Right ⌥.
+- The hotkey is stored as a `Hotkey` value (`modifierOnly(key)` or
+  `combo(modifiers, keyCode)`) in `SettingsStore`. `HotkeyMonitor` and
+  `HotkeyStateMachine` take a `Hotkey` value instead of a hard-coded key, and
+  re-arm when it changes.
+
+### 3.3 UI iteration workflow
+
+The pill and settings window will be refined over several rounds with the user.
+The design supports quick iteration:
+
+- **Mockups first.** Before building the pill or settings UI, show 2–3 visual
+  options as browser mockups. The user picks one and requests tweaks. Native
+  SwiftUI is built only from the chosen mockup.
+- **One theme file.** All visual constants (colours, sizes, corner radii, fonts,
+  waveform style, animation timings, pill position) live in `Theme.swift`. No
+  magic numbers in views.
+- **Previews for every state.** `PillView` has an Xcode `#Preview` for each
+  state (listening, thinking, success, cancelled, didn't-catch-that, copied,
+  error). The settings window has one too.
+- **UI playground (Debug builds only).** A menu bar item "UI Playground" drives
+  the real overlay through every state on screen, with a fake waveform, without
+  recording or loading models.
+- **Review checkpoint after each UI round.** The user tries it and gives
+  feedback before more work continues.
+
+### 3.4 Cleanup behaviour: "Clean + light format"
 
 - Remove fillers (um, uh, like, you know), repetitions and false starts / self-corrections
   (keep the corrected version: "on Tuesday — no, Wednesday" → "on Wednesday").
@@ -87,14 +129,18 @@ the others through a small protocol so it can be faked in tests.
 |---|---|---|
 | `FlowApp` | App entry, `MenuBarExtra`, settings scene | SwiftUI |
 | `DictationCoordinator` | State machine that runs record → transcribe → clean → paste and handles every failure path | Swift concurrency, `@MainActor` |
-| `HotkeyMonitor` | Detects Right ⌥ hold / release / cancel globally; emits `pressed`, `released`, `cancelled` | `CGEventTap` on `flagsChanged` + `keyDown` |
-| `HotkeyStateMachine` | Pure logic: tap-vs-hold threshold, chorded-key cancel, Esc cancel | Plain Swift (fully unit-tested) |
+| `Hotkey` | Value type for the configured shortcut (modifier-only or combo); Codable | Plain Swift |
+| `HotkeyMonitor` | Detects the configured hotkey's hold / release / cancel globally; re-arms when settings change; emits `pressed`, `released`, `cancelled` | `CGEventTap` on `flagsChanged` + `keyDown` |
+| `HotkeyStateMachine` | Pure logic for a given `Hotkey`: tap-vs-hold threshold, chorded-key cancel, Esc cancel |
+| `HotkeyRecorderView` | Settings field that captures a new shortcut and validates it | SwiftUI + local `NSEvent` monitor | Plain Swift (fully unit-tested) |
 | `AudioRecorder` | Captures 16 kHz mono Float32 PCM while held; publishes level for the waveform; 5-minute cap | `AVAudioEngine` |
 | `Transcriber` (protocol) → `WhisperKitTranscriber` | Audio buffer → raw text, auto language detect | WhisperKit, large-v3-turbo variant (~630 MB) |
 | `Cleaner` (protocol) → `MLXCleaner` | Raw text → cleaned text using the cleanup prompt; thinking mode disabled | MLX Swift LM, `mlx-community/Qwen3-1.7B-4bit` (~1 GB) |
 | `CleanupPrompt` | Builds system + user prompt from raw text | Plain Swift |
 | `CleanupValidator` | Decides whether model output is safe to use or should fall back to raw | Plain Swift (fully unit-tested) |
 | `TextInserter` (protocol) → `PasteboardInserter` | Saves clipboard, writes text, posts ⌘V, restores clipboard after a short delay | `NSPasteboard`, `CGEvent` |
+| `Theme` | All visual constants for the pill and settings | Plain Swift |
+| `UIPlayground` (Debug only) | Menu item that drives the overlay through every state | SwiftUI |
 | `OverlayController` + `PillView` | Shows/hides the pill and renders its state | `NSPanel` (`.nonactivatingPanel`), SwiftUI |
 | `ModelManager` | Download (with progress / resume / retry), load, keep warm, unload after idle | WhisperKit + MLX hub download APIs |
 | `SettingsStore` | Persists preferences | `@AppStorage` / `UserDefaults` |
@@ -133,8 +179,8 @@ resets the timer.
 
 | Situation | Behaviour |
 |---|---|
-| Hold shorter than 0.3 s | Ignored. Normal ⌥ use is unaffected |
-| Another key pressed while Right ⌥ held (⌥-chord) | Recording cancelled silently; the key event passes through untouched |
+| Hold shorter than 0.3 s (modifier-only hotkey) | Ignored. Normal use of that key is unaffected |
+| Another key pressed while a modifier-only hotkey is held (e.g. ⌥-chord) | Recording cancelled silently; the key event passes through untouched |
 | Esc pressed while holding | Cancelled. Nothing pasted. Pill shows "Cancelled" briefly |
 | Empty / silent transcript | Pill: "Didn't catch that". Nothing pasted |
 | Cleaner throws, times out (>5 s), or the validator rejects the output | Paste the raw transcript |
@@ -180,7 +226,10 @@ resets the timer.
 ## 8. Testing
 
 - **Unit tests (fakes, no hardware):**
-  - `HotkeyStateMachine`: tap vs. hold, chord cancel, Esc cancel, release timing.
+  - `HotkeyStateMachine`: tap vs. hold, chord cancel, Esc cancel, release timing,
+    for both modifier-only and combo hotkeys.
+  - `Hotkey`: Codable round-trip, display string ("Right ⌥", "⌃Space"),
+    validation (rejects bare keys, warns on system clashes).
   - `DictationCoordinator`: happy path plus every row of the error table, using
     fake `Recorder` / `Transcriber` / `Cleaner` / `TextInserter`.
   - `CleanupValidator`: accept and reject cases for each rule.
@@ -191,16 +240,36 @@ resets the timer.
   preamble, questions stay questions, lists only when dictated. Run with
   an environment flag so normal test runs stay fast and offline.
 - **Manual checklist:** first-run permissions and download; dictate into Claude
-  desktop, ChatGPT in a browser, Cursor and Notes; ⌥-chord passthrough; Esc
+  desktop, ChatGPT in a browser, Cursor and Notes; change the hotkey to a combo
+  and back; ⌥-chord passthrough; Esc
   cancel; offline (Wi-Fi off) dictation; idle unload and reload.
 
 ## 9. Open risks
 
-- **Event tap and modifier-only hotkeys:** detecting Right ⌥ specifically needs
-  the device-dependent modifier flags in `flagsChanged`. This is verified early
+- **Event tap and modifier-only hotkeys:** detecting a specific side (e.g.
+  Right ⌥) needs the device-dependent modifier flags in `flagsChanged`. This is verified early
   in the plan.
 - **MLX Swift API churn:** the LLM package APIs move quickly. The plan pins a
   version and wraps it behind `Cleaner`.
 - **Small model over-editing:** mitigated by a strict prompt, temperature 0,
   the validator and the raw fallback. Qwen3 4B is selectable in settings if 1.7B
   over-edits.
+- **Fn/🌐 key:** macOS may trigger the emoji picker or dictation. Handled by a
+  settings note rather than code.
+
+## 10. Build phases (outline for the implementation plan)
+
+0. **Setup:** XcodeGen, "Flow Dev" signing cert, skeleton menu bar app + test
+   target, pin WhisperKit / MLX versions.
+1. **Core logic (test-first, no hardware):** `Hotkey`, `HotkeyStateMachine`,
+   `CleanupValidator`, `CleanupPrompt`, `DictationCoordinator` with fakes.
+2. **Real input/output:** `HotkeyMonitor` (configurable), `AudioRecorder`,
+   `PasteboardInserter`. Checkpoint: hold, talk, release pastes placeholder text.
+3. **UI round 1:** browser mockups of the pill → user picks → `Theme`,
+   `PillView` + previews, `OverlayController`, UI Playground. Review checkpoint.
+4. **AI:** `ModelManager`, `WhisperKitTranscriber`, `MLXCleaner`, cleanup
+   quality eval. Checkpoint: fully working offline dictation.
+5. **Settings + UI round 2:** settings window mockups → user picks →
+   settings window incl. `HotkeyRecorderView`, permissions onboarding.
+   Review checkpoint.
+6. **Polish:** manual test pass, UI tweaks from feedback, README.
