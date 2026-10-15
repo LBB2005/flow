@@ -40,7 +40,8 @@ Wispr Flow.
 - Paste into the focused app, restoring the previous clipboard.
 - Menu bar icon with a settings window: hotkey, microphone, Whisper model
   (large-v3-turbo default, or a smaller/faster variant), cleanup model
-  (Qwen3 1.7B default, or Qwen3 4B for better quality), cleanup on/off.
+  (Qwen3 1.7B default, or Qwen3 4B for better quality), cleanup on/off,
+  keep-warm time (2 min / **10 min default** / 30 min / Always).
 - First-run model download with progress, resume and retry.
 - Permission onboarding (Microphone, Accessibility).
 
@@ -124,7 +125,9 @@ pill's message. Only one dictation runs at a time. A key press during
 5. **Done:** the pill shows a brief success state and hides. The idle-unload timer resets.
 
 Models load lazily on first dictation (or on launch if already downloaded), stay
-resident for **10 minutes** after the last dictation, then unload (~2 GB freed).
+resident for the **keep-warm time** after the last dictation (default 10 minutes;
+2 / 10 / 30 min or Always in settings), then unload (~2 GB freed). Each dictation
+resets the timer.
 
 ## 6. Error handling
 
