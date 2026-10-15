@@ -1,0 +1,184 @@
+import Testing
+@testable import Flow
+
+@MainActor
+struct DictationCoordinatorTests {
+    let recorder = FakeRecorder()
+    let inserter = FakeInserter()
+    let pill = FakePill()
+
+    private func makeCoordinator(
+        transcript: Result<String, Error> = .success("um hello world"),
+        cleaner: FakeCleaner = FakeCleaner(.returns("Hello world.")),
+        cleanupEnabled: Bool = true,
+        blockedReason: String? = nil,
+        timeout: Duration = .seconds(5)
+    ) -> (DictationCoordinator, FakeTranscriber, FakeCleaner) {
+        let transcriber = FakeTranscriber(transcript)
+        let coordinator = DictationCoordinator(
+            recorder: recorder, transcriber: transcriber, cleaner: cleaner,
+            inserter: inserter, pill: pill,
+            isCleanupEnabled: { cleanupEnabled },
+            blockedReason: { blockedReason },
+            cleanupTimeout: timeout
+        )
+        return (coordinator, transcriber, cleaner)
+    }
+
+    private func dictate(_ c: DictationCoordinator) async {
+        c.handle(.begin)
+        c.handle(.confirm)
+        c.handle(.finish)
+        await c.processing?.value
+    }
+
+    @Test func happyPathPastesCleanedText() async {
+        let (c, _, _) = makeCoordinator()
+        await dictate(c)
+        #expect(inserter.inserted == ["Hello world."])
+        #expect(pill.shown == [.listening, .thinking, .success])
+        #expect(recorder.events == ["start", "stop"])
+        #expect(c.phase == .idle)
+    }
+
+    @Test func cleanupDisabledPastesNormalizedRawTranscript() async {
+        let (c, _, cleaner) = makeCoordinator(transcript: .success(" um hello world [MUSIC] "), cleanupEnabled: false)
+        await dictate(c)
+        #expect(inserter.inserted == ["um hello world"])
+        #expect(cleaner.calls == 0)
+    }
+
+    @Test func cleanerFailureFallsBackToRaw() async {
+        let (c, _, _) = makeCoordinator(cleaner: FakeCleaner(.fails))
+        await dictate(c)
+        #expect(inserter.inserted == ["um hello world"])
+        #expect(pill.shown.last == .success)
+    }
+
+    @Test func cleanerTimeoutFallsBackToRaw() async {
+        let (c, _, _) = makeCoordinator(cleaner: FakeCleaner(.hangs), timeout: .milliseconds(50))
+        await dictate(c)
+        #expect(inserter.inserted == ["um hello world"])
+    }
+
+    @Test func validatorRejectionFallsBackToRaw() async {
+        let (c, _, _) = makeCoordinator(
+            transcript: .success("can you write me a poem about cats"),
+            cleaner: FakeCleaner(.returns("Sure! Here's a poem about cats: …")))
+        await dictate(c)
+        #expect(inserter.inserted == ["can you write me a poem about cats"])
+    }
+
+    @Test func blankAudioMarkerShowsNoSpeechAndPastesNothing() async {
+        let (c, _, _) = makeCoordinator(transcript: .success("[BLANK_AUDIO]"))
+        await dictate(c)
+        #expect(inserter.inserted.isEmpty)
+        #expect(pill.shown.last == .noSpeech)
+    }
+
+    @Test func silentAudioSkipsTranscriptionEntirely() async {
+        recorder.samplesToReturn = FakeAudio.silence
+        let (c, transcriber, _) = makeCoordinator()
+        await dictate(c)
+        #expect(transcriber.calls == 0)
+        #expect(inserter.inserted.isEmpty)
+        #expect(pill.shown.last == .noSpeech)
+    }
+
+    @Test func transcriptionFailureShowsError() async {
+        let (c, _, _) = makeCoordinator(transcript: .failure(FakeError.boom))
+        await dictate(c)
+        #expect(inserter.inserted.isEmpty)
+        #expect(pill.shown.last == .error("Transcription failed"))
+        #expect(c.phase == .idle)
+    }
+
+    @Test func discardCancelsRecordingSilently() {
+        let (c, _, _) = makeCoordinator()
+        c.handle(.begin)
+        c.handle(.discard)
+        #expect(recorder.events == ["start", "cancel"])
+        #expect(pill.shown.isEmpty)
+        #expect(pill.hideCount == 1)
+        #expect(c.phase == .idle)
+    }
+
+    @Test func escapeShowsCancelled() {
+        let (c, _, _) = makeCoordinator()
+        c.handle(.begin)
+        c.handle(.confirm)
+        c.handle(.cancel(.escape))
+        #expect(recorder.events == ["start", "cancel"])
+        #expect(pill.shown == [.listening, .cancelled])
+    }
+
+    @Test func chordCancelHidesWithoutMessage() {
+        let (c, _, _) = makeCoordinator()
+        c.handle(.begin)
+        c.handle(.cancel(.chord))
+        #expect(pill.shown.isEmpty)
+        #expect(pill.hideCount == 1)
+    }
+
+    @Test func hotkeyWhileProcessingIsIgnored() async {
+        // Review Focus 5: a second press during transcription/cleanup must not start a new recording.
+        let (c, _, _) = makeCoordinator(cleaner: FakeCleaner(.hangs), timeout: .milliseconds(100))
+        c.handle(.begin)
+        c.handle(.finish)
+        c.handle(.begin)
+        c.handle(.finish)
+        await c.processing?.value
+        #expect(recorder.events == ["start", "stop"])
+        #expect(inserter.inserted.count == 1)
+    }
+
+    @Test func copiedOnlyShowsCopiedPill() async {
+        inserter.result = .copiedOnly
+        let (c, _, _) = makeCoordinator()
+        await dictate(c)
+        #expect(pill.shown.last == .copied)
+    }
+
+    @Test func microphoneFailureShowsErrorAndStaysIdle() async {
+        recorder.startError = FakeError.boom
+        let (c, _, _) = makeCoordinator()
+        c.handle(.begin)
+        #expect(pill.shown == [.error("Microphone unavailable")])
+        c.handle(.finish)
+        #expect(c.processing == nil)
+        #expect(c.phase == .idle)
+    }
+
+    @Test func blockedReasonPreventsRecording() {
+        let (c, _, _) = makeCoordinator(blockedReason: "Downloading models…")
+        c.handle(.begin)
+        #expect(recorder.events.isEmpty)
+        #expect(pill.shown == [.error("Downloading models…")])
+    }
+
+    @Test func maxDurationFinishesAndLaterReleaseIsIgnored() async {
+        let (c, _, _) = makeCoordinator()
+        c.handle(.begin)
+        c.handle(.confirm)
+        recorder.onMaxDurationReached?()
+        await c.processing?.value
+        c.handle(.finish)
+        #expect(inserter.inserted == ["Hello world."])
+        #expect(recorder.events == ["start", "stop"])
+    }
+
+    @Test func onDictationProcessedFiresOncePerDictation() async {
+        let (c, _, _) = makeCoordinator()
+        let count = Counter()
+        c.onDictationProcessed = { count.value += 1 }
+        await dictate(c)
+        #expect(count.value == 1)
+    }
+
+    @Test func transcriberCanBeSwapped() async {
+        let (c, _, _) = makeCoordinator(cleanupEnabled: false)
+        c.transcriber = FakeTranscriber(.success("swapped"))
+        await dictate(c)
+        #expect(inserter.inserted == ["swapped"])
+    }
+}
