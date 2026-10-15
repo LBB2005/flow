@@ -4,8 +4,9 @@ struct MenuContent: View {
     let app: AppModel
 
     var body: some View {
-        Text("Tap or hold \(app.settings.hotkey.displayName) to dictate")
+        Text(app.statusLine)
         Divider()
+
         if !app.permissions.accessibility {
             Button("⚠︎ Allow Accessibility (needed for the hotkey)…") {
                 app.permissions.promptAccessibility()
@@ -15,6 +16,15 @@ struct MenuContent: View {
         if app.permissions.microphone == .denied {
             Button("⚠︎ Allow Microphone access…") { app.permissions.openMicrophoneSettings() }
         }
+
+        Section("Models") {
+            modelRow("Speech recognition", .transcriber)
+            modelRow("Cleanup", .cleaner)
+        }
+
+        Divider()
+        Toggle("Clean up text", isOn: Bindable(app.settings).cleanupEnabled)
+
         #if DEBUG
         Menu("UI Playground") {
             Button("Play all states") { app.playground.playAll() }
@@ -33,5 +43,17 @@ struct MenuContent: View {
         Divider()
         Button("Quit Flow") { NSApp.terminate(nil) }
             .keyboardShortcut("q")
+    }
+
+    @ViewBuilder
+    private func modelRow(_ title: String, _ kind: ModelManager.Kind) -> some View {
+        switch app.models.status(of: kind) {
+        case .checking: Text("\(title): checking…")
+        case .notDownloaded: Text("\(title): not downloaded")
+        case .downloading(let fraction): Text("\(title): downloading \(Int(fraction * 100))%")
+        case .ready: Text("\(title): ready ✓")
+        case .failed:
+            Button("\(title): failed. Retry") { app.models.prepare(kind) }
+        }
     }
 }

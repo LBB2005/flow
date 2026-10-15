@@ -8,7 +8,7 @@ struct FlowApp: App {
         MenuBarExtra {
             MenuContent(app: appDelegate.model)
         } label: {
-            Image(systemName: appDelegate.model.permissions.accessibility ? "waveform" : "exclamationmark.triangle")
+            Image(systemName: appDelegate.model.menuBarSymbol)
         }
     }
 }
