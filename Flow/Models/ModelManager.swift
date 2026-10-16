@@ -61,7 +61,7 @@ final class ModelManager {
                 try await backend.load()
                 self.statuses[kind] = .ready
                 self.touch()
-                Log.models.info("\(backend.displayName) ready")
+                Log.models.notice("\(backend.displayName, privacy: .public) ready")
             } catch is CancellationError {
                 return
             } catch {
@@ -82,6 +82,28 @@ final class ModelManager {
         return prepare(kind)
     }
 
+    /// Call when a recording starts: loads every ready model in the background (a no-op for models still loaded)
+    /// so a reload after the keep-warm unload overlaps with the user speaking, and restarts the keep-warm countdown.
+    /// Models that are still checking, downloading or failed are left to `prepare`.
+    @discardableResult
+    func warmUp() -> Task<Void, Never> {
+        touch()
+        let targets = Kind.allCases.filter { status(of: $0) == .ready }.compactMap { backends[$0] }
+        return Task {
+            await withTaskGroup(of: Void.self) { group in
+                for backend in targets {
+                    group.addTask {
+                        do {
+                            try await backend.load()
+                        } catch {
+                            Log.models.error("warm-up of \(backend.displayName, privacy: .public) failed: \(error.localizedDescription)")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     /// Call after every dictation: restarts the keep-warm countdown.
     func touch() {
         idleTimer.restart(after: keepWarm().duration) { [weak self] in
@@ -90,7 +112,7 @@ final class ModelManager {
     }
 
     func unloadAll() async {
-        Log.models.info("keep-warm expired; unloading models")
+        Log.models.notice("keep-warm expired; unloading models")
         for backend in backends.values { await backend.unload() }
     }
 }

@@ -59,6 +59,7 @@ final class AppModel {
         recorder.onLevel = { [weak self] level in self?.overlay.push(level: level) }
         hotkeyMonitor.onAction = { [weak self] action in self?.coordinator.handle(action) }
         coordinator.onAutoStop = { [weak self] in self?.hotkeyMonitor.resetGesture() }
+        coordinator.onRecordingStarted = { [weak self] in self?.models.warmUp() }
         coordinator.onDictationProcessed = { [weak self] in self?.models.touch() }
         if permissions.microphone == .notDetermined {
             Task { await permissions.requestMicrophone() }

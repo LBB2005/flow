@@ -103,6 +103,27 @@ struct DictationCoordinatorTests {
         #expect(stops.value == 1)
     }
 
+    @Test func recordingStartFiresOnRecordingStartedAfterTheRecorderStarts() {
+        // AppModel warms the models here, so a reload overlaps with the user speaking.
+        let (c, _, _) = makeCoordinator()
+        var eventsWhenFired: [String]?
+        c.onRecordingStarted = { [recorder] in eventsWhenFired = recorder.events }
+        c.handle(.begin)
+        #expect(eventsWhenFired == ["start"])
+    }
+
+    @Test func recordingStartedIsNotFiredWhenRecordingCannotStart() {
+        recorder.startError = FakeError.boom
+        let (failing, _, _) = makeCoordinator()
+        let (blocked, _, _) = makeCoordinator(blockedReason: "Models not ready yet")
+        let starts = Counter()
+        failing.onRecordingStarted = { starts.value += 1 }
+        blocked.onRecordingStarted = { starts.value += 1 }
+        failing.handle(.begin)
+        blocked.handle(.begin)
+        #expect(starts.value == 0)
+    }
+
     @Test func escapeShowsCancelled() {
         let (c, _, _) = makeCoordinator()
         c.handle(.begin)

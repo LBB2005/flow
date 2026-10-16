@@ -13,6 +13,8 @@ final class DictationCoordinator {
     var cleaner: Cleaner
     /// Called when recording stops by itself (max length), so the hotkey can un-latch.
     var onAutoStop: (@MainActor () -> Void)?
+    /// Called once the recorder has started, so models can load while the user speaks.
+    var onRecordingStarted: (@MainActor () -> Void)?
     /// Called after every dictation that reached processing (resets the keep-warm timer).
     var onDictationProcessed: (@MainActor () -> Void)?
 
@@ -62,6 +64,7 @@ final class DictationCoordinator {
             do {
                 try recorder.start()
                 phase = .recording
+                onRecordingStarted?()
             } catch {
                 Log.audio.error("recorder failed to start: \(error.localizedDescription)")
                 pill.show(.error("Microphone unavailable"))

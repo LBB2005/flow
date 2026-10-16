@@ -9,6 +9,7 @@ actor WhisperKitTranscriber: Transcriber, ModelBackend {
     private let downloadBase: URL
     private let language: String?
     private var pipe: WhisperKit?
+    private var loading: Task<Void, Error>?
 
     /// `language` is a Whisper language code. "en" (the default) skips language detection,
     /// which is faster and avoids mis-detected accents; nil auto-detects.
@@ -38,9 +39,20 @@ actor WhisperKitTranscriber: Transcriber, ModelBackend {
         Log.models.info("whisper downloaded to \(folder.path)")
     }
 
+    /// Loads once. Concurrent callers (warm-up, prepare, transcribe) share the in-flight load.
     func load() async throws {
         guard pipe == nil else { return }
+        if let loading { return try await loading.value }
         guard isDownloaded(), let folder = savedFolder else { throw ModelError.notDownloaded }
+        let task = Task { try await self.loadPipe(from: folder) }
+        loading = task
+        defer { loading = nil }
+        try await task.value
+    }
+
+    private func loadPipe(from folder: URL) async throws {
+        let clock = ContinuousClock()
+        let started = clock.now
         let config = WhisperKitConfig(
             model: variant,
             modelFolder: folder.path,
@@ -50,6 +62,7 @@ actor WhisperKitTranscriber: Transcriber, ModelBackend {
             load: true,
             download: false)
         pipe = try await WhisperKit(config)
+        Log.models.notice("\(self.displayName, privacy: .public) loaded in \((clock.now - started) / .milliseconds(1), format: .fixed(precision: 0), privacy: .public) ms")
     }
 
     func unload() async {

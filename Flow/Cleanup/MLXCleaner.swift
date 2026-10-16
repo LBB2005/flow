@@ -11,6 +11,7 @@ actor MLXCleaner: Cleaner, ModelBackend {
 
     private let repoID: String
     private var container: ModelContainer?
+    private var loading: Task<Void, Error>?
 
     init(repoID: String) {
         self.repoID = repoID
@@ -39,15 +40,27 @@ actor MLXCleaner: Cleaner, ModelBackend {
         Log.models.info("cleanup model downloaded to \(folder.path)")
     }
 
+    /// Loads once. Concurrent callers (warm-up, prepare, clean) share the in-flight load.
     func load() async throws {
         guard container == nil else { return }
+        if let loading { return try await loading.value }
         guard isDownloaded(), let folder = savedFolder else { throw ModelError.notDownloaded }
+        let task = Task { try await self.loadContainer(from: folder) }
+        loading = task
+        defer { loading = nil }
+        try await task.value
+    }
+
+    private func loadContainer(from folder: URL) async throws {
+        let clock = ContinuousClock()
+        let started = clock.now
         // Loading from a local directory never touches the network (offline after first download).
         let configuration = ModelConfiguration(directory: folder, extraEOSTokens: ["<|im_end|>"])
         container = try await LLMModelFactory.shared.loadContainer(
             from: #hubDownloader(),
             using: #huggingFaceTokenizerLoader(),
             configuration: configuration)
+        Log.models.notice("\(self.displayName, privacy: .public) loaded in \((clock.now - started) / .milliseconds(1), format: .fixed(precision: 0), privacy: .public) ms")
     }
 
     func unload() async {

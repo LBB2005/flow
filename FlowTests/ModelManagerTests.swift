@@ -5,6 +5,7 @@ actor FakeBackend: ModelBackend {
     nonisolated let displayName = "Fake"
     private var downloaded: Bool
     private var failDownload: Bool
+    private var failLoad = false
     private(set) var downloads = 0
     private(set) var loads = 0
     private(set) var unloads = 0
@@ -15,6 +16,7 @@ actor FakeBackend: ModelBackend {
     }
 
     func setFailDownload(_ value: Bool) { failDownload = value }
+    func setFailLoad(_ value: Bool) { failLoad = value }
 
     func isDownloaded() -> Bool { downloaded }
     func download(progress: @escaping @Sendable (Double) -> Void) async throws {
@@ -23,7 +25,10 @@ actor FakeBackend: ModelBackend {
         progress(0.5)
         downloaded = true
     }
-    func load() async throws { loads += 1 }
+    func load() async throws {
+        loads += 1
+        if failLoad { throw FakeError.boom }
+    }
     func unload() async { unloads += 1 }
 }
 
@@ -93,6 +98,39 @@ struct ModelManagerTests {
         await m.replace(.transcriber, with: new).value
         #expect(await eventually { await old.unloads == 1 })
         #expect(await new.downloads == 1)
+        #expect(m.status(of: .transcriber) == .ready)
+    }
+
+    @Test func warmUpLoadsBothReadyModelsAndRestartsKeepWarm() async {
+        let t = FakeBackend(downloaded: true), c = FakeBackend(downloaded: true)
+        let m = manager(t, c)
+        await m.prepare(.transcriber).value
+        await m.prepare(.cleaner).value
+        #expect(await eventually { await gate.waiterCount == 2 })
+        await m.warmUp().value
+        #expect(await t.loads == 2)
+        #expect(await c.loads == 2)
+        #expect(await eventually { await gate.waiterCount == 3 })
+    }
+
+    @Test func warmUpSkipsModelsThatAreNotReady() async {
+        let t = FakeBackend(downloaded: false), c = FakeBackend(downloaded: false)
+        let m = manager(t, c)
+        await m.warmUp().value
+        #expect(await t.loads == 0)
+        #expect(await c.loads == 0)
+        #expect(await t.downloads == 0)
+    }
+
+    @Test func warmUpLoadFailureIsHarmless() async {
+        let t = FakeBackend(downloaded: true), c = FakeBackend(downloaded: true)
+        let m = manager(t, c)
+        await m.prepare(.transcriber).value
+        await m.prepare(.cleaner).value
+        await t.setFailLoad(true)
+        await m.warmUp().value
+        #expect(await t.loads == 2)
+        #expect(await c.loads == 2)
         #expect(m.status(of: .transcriber) == .ready)
     }
 }
