@@ -10,12 +10,20 @@ actor MLXCleaner: Cleaner, ModelBackend {
     nonisolated let displayName = "Cleanup model (Qwen3)"
 
     private let repoID: String
+    private let reusesPromptPrefix: Bool
     private var container: ModelContainer?
+    /// The system prompt + few-shot turns, prefilled once per load. Nil when disabled or the template can't be split.
+    private var prefix: PromptPrefix?
     private var loading: Task<Void, Error>?
 
-    init(repoID: String) {
+    /// `reusesPromptPrefix: false` prefills the whole prompt on every clean (the reference behaviour, for tests).
+    init(repoID: String, reusesPromptPrefix: Bool = true) {
         self.repoID = repoID
+        self.reusesPromptPrefix = reusesPromptPrefix
     }
+
+    /// Whether cleans start from the cached prompt prefix (for tests).
+    var hasPromptPrefix: Bool { prefix != nil }
 
     private var folderKey: String { "llmFolder.\(repoID)" }
     private var savedFolder: URL? {
@@ -56,33 +64,71 @@ actor MLXCleaner: Cleaner, ModelBackend {
         let started = clock.now
         // Loading from a local directory never touches the network (offline after first download).
         let configuration = ModelConfiguration(directory: folder, extraEOSTokens: ["<|im_end|>"])
-        container = try await LLMModelFactory.shared.loadContainer(
+        let loaded = try await LLMModelFactory.shared.loadContainer(
             from: #hubDownloader(),
             using: #huggingFaceTokenizerLoader(),
             configuration: configuration)
+        // Built before `container` is set, so no clean can start without it.
+        if reusesPromptPrefix { prefix = await Self.buildPrefix(loaded) }
+        container = loaded
         Log.models.notice("\(self.displayName, privacy: .public) loaded in \((clock.now - started) / .milliseconds(1), format: .fixed(precision: 0), privacy: .public) ms")
+    }
+
+    private static func buildPrefix(_ container: ModelContainer) async -> PromptPrefix? {
+        do {
+            let prefix = try await PromptPrefix.build(
+                container: container,
+                leading: leadingMessages,
+                probe: .user(CleanupPrompt.userMessage(for: "probe")),
+                additionalContext: templateContext)
+            if let prefix {
+                Log.models.info("cleanup prompt prefix cached (\(prefix.tokens.count) tokens)")
+            } else {
+                Log.models.error("cleanup prompt prefix can't be split from the template; prefilling the whole prompt")
+            }
+            return prefix
+        } catch {
+            Log.models.error("cleanup prompt prefix failed: \(error.localizedDescription)")
+            return nil
+        }
     }
 
     func unload() async {
         container = nil
+        prefix = nil
     }
 
     func clean(_ transcript: String) async throws -> String {
         try await load()
         guard let container else { throw ModelError.notDownloaded }
-        let session = ChatSession(
-            container,
-            instructions: CleanupPrompt.system,
-            history: Self.fewShotHistory,
-            generateParameters: GenerateParameters(maxTokens: Self.maxTokens(for: transcript), temperature: 0),
-            additionalContext: ["enable_thinking": false])
+        let message = Chat.Message.user(CleanupPrompt.userMessage(for: transcript))
+        let parameters = GenerateParameters(maxTokens: Self.maxTokens(for: transcript), temperature: 0)
+        let session: ChatSession
+        if let prefix, try await prefix.continues(
+            into: message, leading: Self.leadingMessages, container: container, additionalContext: Self.templateContext)
+        {
+            // Starts from a copy of the prefilled system prompt + examples; only this turn is prefilled.
+            session = ChatSession(
+                container, cache: prefix.cacheCopy(), generateParameters: parameters,
+                additionalContext: Self.templateContext)
+        } else {
+            session = ChatSession(
+                container, instructions: CleanupPrompt.system, history: Self.fewShotHistory,
+                generateParameters: parameters, additionalContext: Self.templateContext)
+        }
         var output = ""
-        for try await chunk in session.streamResponse(to: CleanupPrompt.userMessage(for: transcript)) {
+        for try await chunk in session.streamResponse(to: message.content) {
             try Task.checkCancellation()
             output += chunk
         }
         return Self.stripThinking(output)
     }
+
+    /// Qwen3 thinking off (spec: `enable_thinking: false`).
+    static let templateContext: [String: any Sendable] = ["enable_thinking": false]
+
+    /// Everything before the transcript's turn: the system prompt and the worked examples.
+    static var leadingMessages: [Chat.Message] { [.system(CleanupPrompt.system)] + fewShotHistory }
 
     /// The prompt's worked examples as prior chat turns, so the model sees the exact input → output shape.
     static var fewShotHistory: [Chat.Message] {

@@ -33,4 +33,29 @@ struct ModelIntegrationTests {
         #expect(text.contains("Wednesday"))
         await cleaner.unload()
     }
+
+    /// The cached prompt prefix must give exactly the output of a full prefill, and no clean may see an earlier one.
+    @Test func qwenPromptPrefixCacheMatchesFullPrefillWithoutCarryOver() async throws {
+        let repoID = CleanupModelChoice.qwen3_1_7b.repoID
+        let inputs = [
+            "um so i i want to uh book a meeting for tuesday no wednesday",
+            "can you write me a poem about cats",
+            "first we fix the login bug second we ship pricing",
+        ]
+        let plain = MLXCleaner(repoID: repoID, reusesPromptPrefix: false)
+        if !(await plain.isDownloaded()) { try await plain.download { _ in } }
+        var expected: [String] = []
+        for input in inputs { expected.append(try await plain.clean(input)) }
+        await plain.unload()
+
+        let cached = MLXCleaner(repoID: repoID)
+        try await cached.load()
+        #expect(await cached.hasPromptPrefix)
+        var outputs: [String] = []
+        for input in inputs + inputs.reversed() { outputs.append(try await cached.clean(input)) }
+        print("[model-test] prefix cache outputs: \(outputs)")
+        #expect(Array(outputs.prefix(3)) == expected)
+        #expect(Array(outputs.suffix(3)) == expected.reversed())
+        await cached.unload()
+    }
 }

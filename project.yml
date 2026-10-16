@@ -18,6 +18,9 @@ packages:
   ArgmaxOSS:
     url: https://github.com/argmaxinc/argmax-oss-swift
     exactVersion: 1.1.0
+  MLXSwift:
+    url: https://github.com/ml-explore/mlx-swift
+    exactVersion: 0.32.3
   MLXSwiftLM:
     url: https://github.com/ml-explore/mlx-swift-lm
     exactVersion: 3.32.3
@@ -36,6 +39,8 @@ targets:
     dependencies:
       - package: ArgmaxOSS
         product: WhisperKit
+      - package: MLXSwift
+        product: MLX
       - package: MLXSwiftLM
         product: MLXLLM
       - package: MLXSwiftLM
