@@ -1,5 +1,6 @@
 import Foundation
 import HuggingFace
+import MLX
 import MLXHuggingFace
 import MLXLLM
 import MLXLMCommon
@@ -64,6 +65,7 @@ actor MLXCleaner: Cleaner, ModelBackend {
         let started = clock.now
         // Loading from a local directory never touches the network (offline after first download).
         let configuration = ModelConfiguration(directory: folder, extraEOSTokens: ["<|im_end|>"])
+        Memory.cacheLimit = Self.gpuCacheLimit
         let loaded = try await LLMModelFactory.shared.loadContainer(
             from: #hubDownloader(),
             using: #huggingFaceTokenizerLoader(),
@@ -96,6 +98,8 @@ actor MLXCleaner: Cleaner, ModelBackend {
     func unload() async {
         container = nil
         prefix = nil
+        // Freed weights otherwise stay in MLX's buffer pool, so unloading wouldn't return the memory.
+        Memory.clearCache()
     }
 
     func clean(_ transcript: String) async throws -> String {
@@ -123,6 +127,10 @@ actor MLXCleaner: Cleaner, ModelBackend {
         }
         return Self.stripThinking(output)
     }
+
+    /// Cap on MLX's pool of freed GPU buffers. Uncapped it holds ~0.8 GB after loading (and ~1.2 GB after
+    /// unloading) on a Mac that's already swapping; generation reuses same-sized buffers, so this costs nothing.
+    static let gpuCacheLimit = 128 * 1024 * 1024
 
     /// Qwen3 thinking off (spec: `enable_thinking: false`).
     static let templateContext: [String: any Sendable] = ["enable_thinking": false]

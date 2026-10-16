@@ -1,3 +1,4 @@
+import MLX
 import Testing
 @testable import Flow
 
@@ -23,6 +24,8 @@ struct ModelIntegrationTests {
         let raw = "um so i i want to uh book a meeting for tuesday no wednesday"
         let clock = ContinuousClock()
         let loadTime = try await clock.measure { try await cleaner.load() }
+        // Loading frees ~0.8 GB of temporaries; the capped pool keeps only a little for reuse.
+        #expect(Memory.cacheMemory <= MLXCleaner.gpuCacheLimit)
         var output = ""
         let cleanTime = try await clock.measure { output = try await cleaner.clean(raw) }
         print("[model-test] qwen load \(loadTime), clean \(cleanTime): \(output)")
