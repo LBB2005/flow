@@ -96,6 +96,8 @@ final class DictationCoordinator {
             return
         }
 
+        let clock = ContinuousClock()
+        let started = clock.now
         let raw: String
         do {
             raw = TranscriptNormalizer.normalize(try await transcriber.transcribe(samples))
@@ -109,15 +111,27 @@ final class DictationCoordinator {
             return
         }
 
+        let transcribed = clock.now
         var text = raw
         if isCleanupEnabled() {
             phase = .cleaning
             text = await cleaned(raw) ?? raw
         }
+        let cleanedAt = clock.now
 
         phase = .inserting
         let result = await inserter.insert(text)
         pill.show(result == .pasted ? .success : .copied)
+        Log.pipeline.notice("""
+            timing: audio \(samples.count / 16, privacy: .public) ms, \
+            transcribe \(Self.ms(transcribed - started), privacy: .public) ms, \
+            cleanup \(Self.ms(cleanedAt - transcribed), privacy: .public) ms, \
+            total to paste \(Self.ms(cleanedAt - started), privacy: .public) ms
+            """)
+    }
+
+    private static func ms(_ duration: Duration) -> Int {
+        Int(duration.components.seconds * 1000 + duration.components.attoseconds / 1_000_000_000_000_000)
     }
 
     /// Returns the validated cleanup, or nil to fall back to the raw transcript.
