@@ -297,4 +297,7 @@ These override earlier sections where they conflict.
    from the top-centre of the main screen with the same look.
 4. **Waveform reacts to loudness** (RMS → 0…1 over −50…0 dBFS), sampled every 120 ms with
    smoothing 0.55 and a 180 ms ease, so quiet speech draws short bars and loud speech tall ones.
-
+5. **English-only transcription (2026-10-16, latency).** The user only dictates English, so Whisper runs
+   with `language: "en"` and language detection off (the language token is still prefilled). This replaces
+   "auto language detect" in §4. `WhisperKitTranscriber(language:)` takes the code (nil = auto-detect)
+   so it can become a setting later.

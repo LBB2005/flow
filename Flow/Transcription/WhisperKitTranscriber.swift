@@ -7,10 +7,14 @@ actor WhisperKitTranscriber: Transcriber, ModelBackend {
 
     private let variant: String
     private let downloadBase: URL
+    private let language: String?
     private var pipe: WhisperKit?
 
-    init(variant: String, downloadBase: URL = ModelPaths.root.appending(path: "whisper")) {
+    /// `language` is a Whisper language code. "en" (the default) skips language detection,
+    /// which is faster and avoids mis-detected accents; nil auto-detects.
+    init(variant: String, language: String? = "en", downloadBase: URL = ModelPaths.root.appending(path: "whisper")) {
         self.variant = variant
+        self.language = language
         self.downloadBase = downloadBase
     }
 
@@ -58,15 +62,20 @@ actor WhisperKitTranscriber: Transcriber, ModelBackend {
         try await load()
         guard let pipe else { throw ModelError.notDownloaded }
         nonisolated(unsafe) let whisper = pipe
-        let options = DecodingOptions(
-            task: .transcribe,
-            language: nil,
-            temperature: 0,
-            usePrefillPrompt: true,
-            detectLanguage: true,
-            skipSpecialTokens: true,
-            withoutTimestamps: true)
+        let options = Self.decodingOptions(language: language)
         let results = try await whisper.transcribe(audioArray: samples, decodeOptions: options)
         return results.map(\.text).joined(separator: " ")
+    }
+
+    /// Greedy decoding with the language token prefilled. Detection runs only when no language is set.
+    static func decodingOptions(language: String?) -> DecodingOptions {
+        DecodingOptions(
+            task: .transcribe,
+            language: language,
+            temperature: 0,
+            usePrefillPrompt: true,
+            detectLanguage: language == nil,
+            skipSpecialTokens: true,
+            withoutTimestamps: true)
     }
 }
