@@ -40,6 +40,7 @@ struct MenuContent: View {
             Button("Hide") { app.playground.hide() }
         }
         #endif
+        SettingsMenuButton()
         Divider()
         Button("Quit Flow") { NSApp.terminate(nil) }
             .keyboardShortcut("q")
@@ -55,5 +56,18 @@ struct MenuContent: View {
         case .failed:
             Button("\(title): failed. Retry") { app.models.prepare(kind) }
         }
+    }
+}
+
+/// Menu-bar apps have to activate themselves, or the Settings window opens behind other apps.
+struct SettingsMenuButton: View {
+    @Environment(\.openSettings) private var openSettings
+
+    var body: some View {
+        Button("Settings…") {
+            NSApp.activate()
+            openSettings()
+        }
+        .keyboardShortcut(",")
     }
 }

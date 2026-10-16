@@ -10,5 +10,8 @@ struct FlowApp: App {
         } label: {
             Image(systemName: appDelegate.model.menuBarSymbol)
         }
+        Settings {
+            SettingsView(app: appDelegate.model)
+        }
     }
 }
