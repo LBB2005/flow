@@ -3,13 +3,17 @@ import Testing
 
 @MainActor
 struct DictationCoordinatorTests {
+    /// Long enough (≥ `quickCleanupWordLimit` words) to go through the cleanup model.
+    static let longRaw = "um so I think we should uh ship it on friday"
+    static let longCleaned = "I think we should ship it on Friday."
+
     let recorder = FakeRecorder()
     let inserter = FakeInserter()
     let pill = FakePill()
 
     private func makeCoordinator(
-        transcript: Result<String, Error> = .success("um hello world"),
-        cleaner: FakeCleaner = FakeCleaner(.returns("Hello world.")),
+        transcript: Result<String, Error> = .success(longRaw),
+        cleaner: FakeCleaner = FakeCleaner(.returns(longCleaned)),
         cleanupEnabled: Bool = true,
         blockedReason: String? = nil,
         timeout: Duration = .seconds(5)
@@ -35,10 +39,41 @@ struct DictationCoordinatorTests {
     @Test func happyPathPastesCleanedText() async {
         let (c, _, _) = makeCoordinator()
         await dictate(c)
-        #expect(inserter.inserted == ["Hello world."])
+        #expect(inserter.inserted == [Self.longCleaned])
         #expect(pill.shown == [.listening, .thinking, .success])
         #expect(recorder.events == ["start", "stop"])
         #expect(c.phase == .idle)
+    }
+
+    @Test func shortTranscriptIsQuickCleanedWithoutTheModel() async {
+        let (c, _, cleaner) = makeCoordinator(transcript: .success("um i i think so"))
+        await dictate(c)
+        #expect(cleaner.calls == 0)
+        #expect(inserter.inserted == ["I think so."])
+        #expect(pill.shown.last == .success)
+    }
+
+    @Test func transcriptAtTheWordLimitUsesTheModel() async {
+        let raw = "one two three four five six seven eight"
+        #expect(raw.split(separator: " ").count == DictationCoordinator.quickCleanupWordLimit)
+        let (c, _, cleaner) = makeCoordinator(transcript: .success(raw), cleaner: FakeCleaner(.returns("Model output.")))
+        await dictate(c)
+        #expect(cleaner.calls == 1)
+        #expect(inserter.inserted == ["Model output."])
+    }
+
+    @Test func shortTranscriptOfOnlyFillersPastesNothing() async {
+        let (c, _, cleaner) = makeCoordinator(transcript: .success("Um, uh."))
+        await dictate(c)
+        #expect(cleaner.calls == 0)
+        #expect(inserter.inserted.isEmpty)
+        #expect(pill.shown.last == .noSpeech)
+    }
+
+    @Test func shortTranscriptWithCleanupDisabledStaysRaw() async {
+        let (c, _, _) = makeCoordinator(transcript: .success("um i think so"), cleanupEnabled: false)
+        await dictate(c)
+        #expect(inserter.inserted == ["um i think so"])
     }
 
     @Test func cleanupDisabledPastesNormalizedRawTranscript() async {
@@ -51,14 +86,14 @@ struct DictationCoordinatorTests {
     @Test func cleanerFailureFallsBackToRaw() async {
         let (c, _, _) = makeCoordinator(cleaner: FakeCleaner(.fails))
         await dictate(c)
-        #expect(inserter.inserted == ["um hello world"])
+        #expect(inserter.inserted == [Self.longRaw])
         #expect(pill.shown.last == .success)
     }
 
     @Test func cleanerTimeoutFallsBackToRaw() async {
         let (c, _, _) = makeCoordinator(cleaner: FakeCleaner(.hangs), timeout: .milliseconds(50))
         await dictate(c)
-        #expect(inserter.inserted == ["um hello world"])
+        #expect(inserter.inserted == [Self.longRaw])
     }
 
     @Test func validatorRejectionFallsBackToRaw() async {
@@ -184,7 +219,7 @@ struct DictationCoordinatorTests {
         recorder.onMaxDurationReached?()
         await c.processing?.value
         c.handle(.finish)
-        #expect(inserter.inserted == ["Hello world."])
+        #expect(inserter.inserted == [Self.longCleaned])
         #expect(recorder.events == ["start", "stop"])
     }
 

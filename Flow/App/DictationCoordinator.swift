@@ -5,6 +5,9 @@ import Foundation
 final class DictationCoordinator {
     enum Phase: Equatable { case idle, recording, transcribing, cleaning, inserting }
 
+    /// Transcripts with fewer words than this skip the cleanup model and use `QuickCleaner` (spec §11 amendment 6).
+    static let quickCleanupWordLimit = 8
+
     private(set) var phase: Phase = .idle
     /// The in-flight pipeline, exposed so tests can await it.
     private(set) var processing: Task<Void, Never>?
@@ -116,9 +119,20 @@ final class DictationCoordinator {
 
         let transcribed = clock.now
         var text = raw
+        var cleanup = "off"
         if isCleanupEnabled() {
             phase = .cleaning
-            text = await cleaned(raw) ?? raw
+            if raw.split(whereSeparator: \.isWhitespace).count < Self.quickCleanupWordLimit {
+                cleanup = "quick"
+                text = QuickCleaner.clean(raw)
+                guard !text.isEmpty else {
+                    pill.show(.noSpeech)
+                    return
+                }
+            } else {
+                cleanup = "model"
+                text = await cleaned(raw) ?? raw
+            }
         }
         let cleanedAt = clock.now
 
@@ -128,7 +142,7 @@ final class DictationCoordinator {
         Log.pipeline.notice("""
             timing: audio \(samples.count / 16, privacy: .public) ms, \
             transcribe \(Self.ms(transcribed - started), privacy: .public) ms, \
-            cleanup \(Self.ms(cleanedAt - transcribed), privacy: .public) ms, \
+            cleanup (\(cleanup, privacy: .public)) \(Self.ms(cleanedAt - transcribed), privacy: .public) ms, \
             total to paste \(Self.ms(cleanedAt - started), privacy: .public) ms
             """)
     }

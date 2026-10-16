@@ -301,3 +301,9 @@ These override earlier sections where they conflict.
    with `language: "en"` and language detection off (the language token is still prefilled). This replaces
    "auto language detect" in §4. `WhisperKitTranscriber(language:)` takes the code (nil = auto-detect)
    so it can become a setting later.
+6. **Light cleanup for short phrases (2026-10-16, latency, user-approved).** When cleanup is on and the
+   normalized transcript has fewer than 8 words (`DictationCoordinator.quickCleanupWordLimit`), the model is
+   skipped and the rule-based `QuickCleaner` runs instead (no validator): it drops standalone fillers
+   (um, uh, er, erm, hmm, mm), collapses immediate stutters ("i i think" → "I think"), capitalises "I" and
+   the first word, and ends the text with `.`, or `?` when it starts with a question word. If nothing is
+   left, the pill shows "Didn't catch that" and nothing is pasted.
