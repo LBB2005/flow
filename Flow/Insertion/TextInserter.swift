@@ -1,15 +1,8 @@
 import Foundation
 
-enum InsertResult: Equatable, Sendable {
-    /// Pasted into the focused app.
-    case pasted
-    /// No text field was focused; the text was left on the clipboard.
-    case copiedOnly
-}
-
 @MainActor
 protocol TextInserter: AnyObject {
-    func insert(_ text: String) async -> InsertResult
+    func insert(_ text: String) async
 }
 
 struct PasteboardSnapshot: Equatable, Sendable {
@@ -35,7 +28,7 @@ protocol KeySender: AnyObject {
 enum FocusState: Sendable {
     case editable
     case notEditable
-    /// Accessibility couldn't tell (e.g. some Electron apps).
+    /// Accessibility couldn't tell.
     case unknown
 }
 
@@ -65,19 +58,18 @@ final class PasteboardInserter: TextInserter {
         self.sleep = sleep
     }
 
-    func insert(_ text: String) async -> InsertResult {
+    func insert(_ text: String) async {
         let focusState = focus.focusState()
         let saved = pasteboard.snapshot()
         let ourChange = pasteboard.setString(text)
 
-        guard focusState != .notEditable else {
-            Log.insert.info("no editable field focused; left text on clipboard")
-            return .copiedOnly
-        }
+        // Always paste: Chrome web inputs and Electron apps (Claude, Slack) often
+        // report no focused text field even when one is focused. The focus check
+        // only decides whether it's safe to restore the previous clipboard.
         keys.sendPaste()
         guard focusState == .editable else {
-            Log.insert.info("focus unknown; pasted and kept text on clipboard")
-            return .pasted
+            Log.insert.info("focus not confirmed editable; pasted and kept text on clipboard")
+            return
         }
         await sleep(Self.restoreDelay)
         if pasteboard.changeCount == ourChange {
@@ -85,6 +77,5 @@ final class PasteboardInserter: TextInserter {
         } else {
             Log.insert.info("clipboard changed during paste; not restoring")
         }
-        return .pasted
     }
 }

@@ -66,11 +66,9 @@ final class FakeCleaner: Cleaner, @unchecked Sendable {
 
 @MainActor
 final class FakeInserter: TextInserter {
-    var result: InsertResult = .pasted
     private(set) var inserted: [String] = []
-    func insert(_ text: String) async -> InsertResult {
+    func insert(_ text: String) async {
         inserted.append(text)
-        return result
     }
 }
 

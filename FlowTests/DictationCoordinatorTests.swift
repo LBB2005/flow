@@ -188,13 +188,6 @@ struct DictationCoordinatorTests {
         #expect(inserter.inserted.count == 1)
     }
 
-    @Test func copiedOnlyShowsCopiedPill() async {
-        inserter.result = .copiedOnly
-        let (c, _, _) = makeCoordinator()
-        await dictate(c)
-        #expect(pill.shown.last == .copied)
-    }
-
     @Test func microphoneFailureShowsErrorAndStaysIdle() async {
         recorder.startError = FakeError.boom
         let (c, _, _) = makeCoordinator()

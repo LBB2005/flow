@@ -137,8 +137,8 @@ final class DictationCoordinator {
         let cleanedAt = clock.now
 
         phase = .inserting
-        let result = await inserter.insert(text)
-        pill.show(result == .pasted ? .success : .copied)
+        await inserter.insert(text)
+        pill.show(.success)
         Log.pipeline.notice("""
             timing: audio \(samples.count / 16, privacy: .public) ms, \
             transcribe \(Self.ms(transcribed - started), privacy: .public) ms, \

@@ -42,29 +42,22 @@ struct PasteboardInserterTests {
         // Review Focus 2: an image on the clipboard must survive the dictation.
         let image: [[String: Data]] = [["public.png": Data([0x89, 0x50, 0x4E, 0x47]), "public.tiff": Data([1, 2])]]
         pasteboard.items = image
-        let result = await inserter(.editable).insert("Hello world.")
-        #expect(result == .pasted)
+        await inserter(.editable).insert("Hello world.")
         #expect(keys.pastes == 1)
         #expect(pasteboard.items == image)
     }
 
     @Test func emptyClipboardIsRestoredToEmpty() async {
-        _ = await inserter(.editable).insert("Hello")
+        await inserter(.editable).insert("Hello")
         #expect(pasteboard.items.isEmpty)
     }
 
-    @Test func noTextFieldLeavesTextOnClipboard() async {
+    @Test(arguments: [FocusState.notEditable, .unknown])
+    func unconfirmedFocusStillPastesAndKeepsTextOnClipboard(_ focus: FocusState) async {
+        // Chrome web inputs and Electron apps often report no focused text field
+        // even when one is focused, so the paste is always sent.
         pasteboard.items = [["public.png": Data([1])]]
-        let result = await inserter(.notEditable).insert("Hello world.")
-        #expect(result == .copiedOnly)
-        #expect(keys.pastes == 0)
-        #expect(pasteboard.text == "Hello world.")
-    }
-
-    @Test func unknownFocusPastesButKeepsTextOnClipboard() async {
-        pasteboard.items = [["public.png": Data([1])]]
-        let result = await inserter(.unknown).insert("Hello world.")
-        #expect(result == .pasted)
+        await inserter(focus).insert("Hello world.")
         #expect(keys.pastes == 1)
         #expect(pasteboard.text == "Hello world.")
     }
@@ -72,10 +65,9 @@ struct PasteboardInserterTests {
     @Test func doesNotClobberSomethingCopiedDuringTheDelay() async {
         pasteboard.items = [["public.png": Data([1])]]
         let pb = pasteboard
-        let result = await inserter(.editable, sleep: { _ in
+        await inserter(.editable, sleep: { _ in
             await MainActor.run { _ = pb.setString("user copied this") }
         }).insert("Hello world.")
-        #expect(result == .pasted)
         #expect(pasteboard.text == "user copied this")
     }
 }
