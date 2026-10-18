@@ -35,4 +35,13 @@ struct AudioPipelineTests {
         #expect(abs(samples.count - 1_600) <= 300)
         #expect(samples.contains { abs($0) > 0.1 })
     }
+
+    @Test func deviceOverrideSkipsTheSystemDefault() {
+        // Forcing the default device bypasses the engine's default route, which is the one
+        // that copes with AirPods switching to their 24 kHz headset profile.
+        #expect(AudioDevices.overrideUID(preferred: nil, systemDefault: "airpods") == nil)
+        #expect(AudioDevices.overrideUID(preferred: "airpods", systemDefault: "airpods") == nil)
+        #expect(AudioDevices.overrideUID(preferred: "builtin", systemDefault: "airpods") == "builtin")
+        #expect(AudioDevices.overrideUID(preferred: "builtin", systemDefault: nil) == "builtin")
+    }
 }

@@ -1,6 +1,6 @@
 import AVFoundation
 
-enum RecorderError: Error { case noInputDevice, unsupportedFormat, formatMismatch }
+enum RecorderError: Error { case noInputDevice, unsupportedFormat }
 
 @MainActor
 final class AudioRecorder: Recorder {
@@ -44,15 +44,19 @@ final class AudioRecorder: Recorder {
 
     /// Selects the device, installs the tap with the current hardware format and starts the engine.
     private func startEngine() throws -> AVAudioFormat {
-        if let uid = preferredDeviceUID { AudioDevices.setInputDevice(uid: uid, on: engine) }
+        let overrideUID = AudioDevices.overrideUID(
+            preferred: preferredDeviceUID, systemDefault: AudioDevices.defaultInputUID())
+        if let overrideUID { AudioDevices.setInputDevice(uid: overrideUID, on: engine) }
         let input = engine.inputNode
-        let format = input.outputFormat(forBus: 0)
-        guard format.sampleRate > 0, format.channelCount > 0 else { throw RecorderError.noInputDevice }
-        let hardwareRate = input.inputFormat(forBus: 0).sampleRate
-        guard hardwareRate == format.sampleRate else {
-            Log.audio.error("input format mismatch: hardware \(hardwareRate, privacy: .public) Hz, tap \(format.sampleRate, privacy: .public) Hz")
-            throw RecorderError.formatMismatch
+        var format = input.outputFormat(forBus: 0)
+        let hardware = input.inputFormat(forBus: 0)
+        if hardware.sampleRate != format.sampleRate {
+            // Switching device keeps the output format of the route the engine opened first,
+            // so tap with what the hardware actually delivers.
+            Log.audio.notice("tap format \(format.sampleRate, privacy: .public) Hz is stale; using hardware \(hardware.sampleRate, privacy: .public) Hz")
+            format = hardware
         }
+        guard format.sampleRate > 0, format.channelCount > 0 else { throw RecorderError.noInputDevice }
         guard let converter = TapConverter(inputFormat: format, sampleRate: Self.sampleRate) else {
             throw RecorderError.unsupportedFormat
         }

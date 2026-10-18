@@ -26,6 +26,28 @@ enum AudioDevices {
         }
     }
 
+    /// UID of the system default input device, or nil if there is none.
+    static func defaultInputUID() -> String? {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultInputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain)
+        var id = AudioDeviceID(0)
+        var size = UInt32(MemoryLayout<AudioDeviceID>.size)
+        guard AudioObjectGetPropertyData(
+            AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size, &id) == noErr,
+              id != 0 else { return nil }
+        return string(id, kAudioDevicePropertyDeviceUID)
+    }
+
+    /// The device to force onto the engine, or nil to leave it on the default route.
+    /// Forcing the default device is not a no-op: it bypasses the engine's default aggregate,
+    /// which is what copes with Bluetooth headsets switching to their headset profile.
+    static func overrideUID(preferred: String?, systemDefault: String?) -> String? {
+        guard let preferred, preferred != systemDefault else { return nil }
+        return preferred
+    }
+
     /// Points the engine's input at a specific device. Unknown UIDs (e.g. an unplugged
     /// headset) are ignored, so the engine keeps using the system default.
     static func setInputDevice(uid: String, on engine: AVAudioEngine) {
