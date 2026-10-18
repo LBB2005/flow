@@ -1,6 +1,6 @@
 import AVFoundation
 
-enum RecorderError: Error { case noInputDevice, unsupportedFormat }
+enum RecorderError: Error { case noInputDevice, unsupportedFormat, formatMismatch }
 
 @MainActor
 final class AudioRecorder: Recorder {
@@ -13,33 +13,21 @@ final class AudioRecorder: Recorder {
     /// CoreAudio device UID; nil = system default.
     var preferredDeviceUID: String?
 
-    private let engine = AVAudioEngine()
+    private var engine = AVAudioEngine()
+    private var configurationObserver: NSObjectProtocol?
     private var accumulator = SampleAccumulator(maxSamples: Int(sampleRate * maxDuration))
     private var isRecording = false
 
     func start() throws {
         guard !isRecording else { return }
-        if let uid = preferredDeviceUID { AudioDevices.setInputDevice(uid: uid, on: engine) }
-        let input = engine.inputNode
-        let format = input.outputFormat(forBus: 0)
-        guard format.sampleRate > 0, format.channelCount > 0 else { throw RecorderError.noInputDevice }
-        guard let converter = TapConverter(inputFormat: format, sampleRate: Self.sampleRate) else {
-            throw RecorderError.unsupportedFormat
-        }
-
+        // A fresh engine per recording: a reused one caches the input format, and Bluetooth
+        // headsets change sample rate when their mic opens (AirPods: 48 kHz -> 24 kHz).
+        // Installing a tap with the stale format raises an ObjC exception Swift can't catch.
+        engine = AVAudioEngine()
         accumulator = SampleAccumulator(maxSamples: Int(Self.sampleRate * Self.maxDuration))
-        input.installTap(onBus: 0, bufferSize: 1024, format: format,
-                         block: Self.makeTapBlock(converter: converter) { [weak self] samples in
-                             Task { @MainActor in self?.append(samples) }
-                         })
-        engine.prepare()
-        do {
-            try engine.start()
-        } catch {
-            input.removeTap(onBus: 0)
-            throw error
-        }
+        let format = try startEngine()
         isRecording = true
+        observeConfigurationChanges()
         Log.audio.notice("recording started (\(format.sampleRate, privacy: .public) Hz, \(format.channelCount, privacy: .public) ch, device \(self.preferredDeviceUID ?? "system default", privacy: .public))")
     }
 
@@ -54,8 +42,61 @@ final class AudioRecorder: Recorder {
         accumulator = SampleAccumulator(maxSamples: Int(Self.sampleRate * Self.maxDuration))
     }
 
+    /// Selects the device, installs the tap with the current hardware format and starts the engine.
+    private func startEngine() throws -> AVAudioFormat {
+        if let uid = preferredDeviceUID { AudioDevices.setInputDevice(uid: uid, on: engine) }
+        let input = engine.inputNode
+        let format = input.outputFormat(forBus: 0)
+        guard format.sampleRate > 0, format.channelCount > 0 else { throw RecorderError.noInputDevice }
+        let hardwareRate = input.inputFormat(forBus: 0).sampleRate
+        guard hardwareRate == format.sampleRate else {
+            Log.audio.error("input format mismatch: hardware \(hardwareRate, privacy: .public) Hz, tap \(format.sampleRate, privacy: .public) Hz")
+            throw RecorderError.formatMismatch
+        }
+        guard let converter = TapConverter(inputFormat: format, sampleRate: Self.sampleRate) else {
+            throw RecorderError.unsupportedFormat
+        }
+
+        input.installTap(onBus: 0, bufferSize: 1024, format: format,
+                         block: Self.makeTapBlock(converter: converter) { [weak self] samples in
+                             Task { @MainActor in self?.append(samples) }
+                         })
+        engine.prepare()
+        do {
+            try engine.start()
+        } catch {
+            input.removeTap(onBus: 0)
+            throw error
+        }
+        return format
+    }
+
+    /// The engine stops itself when the route changes mid-recording (e.g. AirPods switching
+    /// to their headset profile once the mic opens), so reinstall the tap and keep going.
+    private func observeConfigurationChanges() {
+        configurationObserver = NotificationCenter.default.addObserver(
+            forName: .AVAudioEngineConfigurationChange, object: engine, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.restartAfterConfigurationChange() }
+        }
+    }
+
+    private func restartAfterConfigurationChange() {
+        guard isRecording else { return }
+        engine.inputNode.removeTap(onBus: 0)
+        engine.stop()
+        do {
+            let format = try startEngine()
+            Log.audio.notice("audio configuration changed; input restarted (\(format.sampleRate, privacy: .public) Hz)")
+        } catch {
+            Log.audio.error("audio configuration changed; input restart failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
     private func teardown() {
         guard isRecording else { return }
+        if let configurationObserver { NotificationCenter.default.removeObserver(configurationObserver) }
+        configurationObserver = nil
         engine.inputNode.removeTap(onBus: 0)
         engine.stop()
         isRecording = false
