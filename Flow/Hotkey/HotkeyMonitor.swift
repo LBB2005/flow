@@ -117,7 +117,7 @@ final class HotkeyMonitor {
 
     private func dispatch(_ action: HotkeyAction?) {
         guard let action else { return }
-        Log.hotkey.debug("action: \(String(describing: action))")
+        Log.hotkey.notice("action: \(String(describing: action), privacy: .public)")
         onAction?(action)
     }
 }

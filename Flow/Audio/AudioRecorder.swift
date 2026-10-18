@@ -40,12 +40,12 @@ final class AudioRecorder: Recorder {
             throw error
         }
         isRecording = true
-        Log.audio.debug("recording started (\(format.sampleRate) Hz, \(format.channelCount) ch)")
+        Log.audio.notice("recording started (\(format.sampleRate, privacy: .public) Hz, \(format.channelCount, privacy: .public) ch, device \(self.preferredDeviceUID ?? "system default", privacy: .public))")
     }
 
     func stop() -> [Float] {
         teardown()
-        Log.audio.debug("recording stopped: \(self.accumulator.samples.count) samples")
+        Log.audio.notice("recording stopped: \(self.accumulator.samples.count, privacy: .public) samples, level \(AudioLevel.normalized(self.accumulator.samples), privacy: .public)")
         return accumulator.samples
     }
 

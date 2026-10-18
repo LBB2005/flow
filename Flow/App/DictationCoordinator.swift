@@ -57,10 +57,11 @@ final class DictationCoordinator {
         switch action {
         case .begin:
             guard phase == .idle else {
-                Log.pipeline.debug("busy (\(String(describing: self.phase))), ignoring hotkey")
+                Log.pipeline.notice("busy (\(String(describing: self.phase), privacy: .public)), ignoring hotkey")
                 return
             }
             if let reason = blockedReason() {
+                Log.pipeline.notice("blocked: \(reason, privacy: .public)")
                 pill.show(.error(reason))
                 return
             }
@@ -81,6 +82,7 @@ final class DictationCoordinator {
             guard phase == .recording else { return }
             recorder.cancel()
             phase = .idle
+            Log.pipeline.notice("cancelled (\(String(describing: reason), privacy: .public))")
             if reason == .escape { pill.show(.cancelled) } else { pill.hide() }
 
         case .finish:
@@ -98,6 +100,7 @@ final class DictationCoordinator {
             onDictationProcessed?()
         }
         guard !SilenceDetector.isSilent(samples) else {
+            Log.pipeline.notice("no speech: audio below silence threshold")
             pill.show(.noSpeech)
             return
         }
@@ -113,6 +116,7 @@ final class DictationCoordinator {
             return
         }
         guard !raw.isEmpty else {
+            Log.pipeline.notice("no speech: empty transcript after normalizing")
             pill.show(.noSpeech)
             return
         }
@@ -126,6 +130,7 @@ final class DictationCoordinator {
                 cleanup = "quick"
                 text = QuickCleaner.clean(raw)
                 guard !text.isEmpty else {
+                    Log.pipeline.notice("no speech: only fillers")
                     pill.show(.noSpeech)
                     return
                 }
