@@ -60,6 +60,7 @@ targets:
         LSUIElement: true
         LSMinimumSystemVersion: "26.0"
         NSMicrophoneUsageDescription: "Flow records your voice while you hold the dictation hotkey and transcribes it on this Mac."
+        NSAppleEventsUsageDescription: "Flow pauses Spotify and videos in Chrome while you dictate, then resumes them."
     entitlements:
       path: Flow/Resources/Flow.entitlements
       properties:

@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flow Overlay Options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..650&display=swap">
+<script src="shared/options.js"></script>
+<script>
+  (function () {
+    var t = null;
+    try { t = localStorage.getItem('flow-overlay-theme'); } catch (e) {}
+    if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.dataset.theme = t;
+  })();
+</script>
+<style>
+  :root {
+    --bg: #eceef2;
+    --surface: #f7f8fa;
+    --ink: #17181c;
+    --muted: #5f636d;
+    --line: rgba(20, 24, 34, 0.12);
+    --chip: rgba(20, 24, 34, 0.06);
+    --chip-on-bg: #17181c;
+    --chip-on-ink: #f7f8fa;
+    --focus: #3d6cf0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #15171c; --surface: #1c1e24; --ink: #eef0f4; --muted: #9a9ea8;
+      --line: rgba(255, 255, 255, 0.1); --chip: rgba(255, 255, 255, 0.07);
+      --chip-on-bg: #eef0f4; --chip-on-ink: #15171c; --focus: #7aa2ff;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #15171c; --surface: #1c1e24; --ink: #eef0f4; --muted: #9a9ea8;
+    --line: rgba(255, 255, 255, 0.1); --chip: rgba(255, 255, 255, 0.07);
+    --chip-on-bg: #eef0f4; --chip-on-ink: #15171c; --focus: #7aa2ff;
+  }
+  * { box-sizing: border-box; }
+  html { color-scheme: light dark; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 400 15px/1.5 "Geist", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    transition: background 0.3s, color 0.3s;
+  }
+  .wrap { max-width: 1480px; margin: 0 auto; padding: 0 24px; }
+  header { padding: 44px 0 22px; display: grid; gap: 10px; }
+  h1 { margin: 0; font-size: clamp(28px, 3.4vw, 40px); line-height: 1.08; font-weight: 600; letter-spacing: -0.025em; max-width: 22ch; }
+  header p { margin: 0; color: var(--muted); max-width: 66ch; font-size: 16px; }
+
+  .bar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+  }
+  .bar .wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; padding-top: 12px; padding-bottom: 12px; }
+  .group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .group > span { color: var(--muted); font-size: 13px; margin-right: 2px; }
+  button {
+    font: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    background: var(--chip);
+    border: 0;
+    border-radius: 8px;
+    padding: 6px 11px;
+    cursor: pointer;
+  }
+  button:hover { background: color-mix(in srgb, var(--chip) 100%, var(--ink) 6%); }
+  button[aria-pressed="true"] { background: var(--chip-on-bg); color: var(--chip-on-ink); }
+  button:focus-visible, a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .seg { display: inline-flex; background: var(--chip); border-radius: 9px; padding: 2px; }
+  .seg button { background: transparent; border-radius: 7px; padding: 5px 12px; }
+  .seg button[aria-pressed="true"] { background: var(--chip-on-bg); color: var(--chip-on-ink); }
+
+  main { padding: 28px 0 40px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 560px), 1fr)); gap: 40px 28px; }
+  .tile { display: grid; gap: 14px; align-content: start; }
+  .frame {
+    position: relative;
+    aspect-ratio: 16 / 10.5;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface);
+    box-shadow: 0 0 0 1px var(--line);
+  }
+  .frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
+  .cap { display: grid; gap: 6px; }
+  .cap-head { display: flex; align-items: baseline; gap: 12px; }
+  h2 { margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -0.015em; }
+  .effort { font-size: 12.5px; color: var(--muted); }
+  .effort b { font-weight: 550; color: var(--ink); }
+  .cap-head a { margin-left: auto; font-size: 13.5px; color: var(--ink); text-underline-offset: 3px; text-decoration-thickness: 1px; white-space: nowrap; }
+  .why { margin: 0; max-width: 64ch; }
+  .build { margin: 0; color: var(--muted); font-size: 13.5px; max-width: 70ch; }
+
+  footer { border-top: 1px solid var(--line); padding: 20px 0 48px; color: var(--muted); font-size: 13.5px; }
+  footer p { margin: 0 0 6px; max-width: 80ch; }
+  kbd { font: 12px "Geist", -apple-system, sans-serif; padding: 1px 6px; border-radius: 5px; background: var(--chip); color: var(--ink); }
+  @media (max-width: 640px) {
+    .wrap { padding: 0 16px; }
+    header { padding-top: 28px; }
+    .bar { position: static; }
+  }
+</style>
+</head>
+<body>
+<header class="wrap">
+  <h1>Flow overlay: five floating pop-ups</h1>
+  <p>The dictation pop-up leaves the notch and floats above the Dock. Each preview runs the same dictation in sync: listen, think, paste into the chat box, dismiss. Open one full screen to step through every state, switch the backdrop or drive the waveform with your own mic.</p>
+</header>
+
+<div class="bar">
+  <div class="wrap">
+    <div class="group" role="group" aria-label="Backdrop">
+      <span>Backdrop</span>
+      <div class="seg">
+        <button type="button" data-theme-btn="light" aria-pressed="false">Light</button>
+        <button type="button" data-theme-btn="dark" aria-pressed="false">Dark</button>
+      </div>
+    </div>
+    <div class="group">
+      <button type="button" id="play" aria-pressed="true">Pause loop</button>
+    </div>
+    <div class="group" role="group" aria-label="Show every preview in one state">
+      <span>Hold every preview on</span>
+      <button type="button" data-state="listening">Listening</button>
+      <button type="button" data-state="thinking">Thinking</button>
+      <button type="button" data-state="success">Pasted</button>
+      <button type="button" data-state="cancelled">Cancelled</button>
+      <button type="button" data-state="noSpeech">No speech</button>
+      <button type="button" data-state="copied">Copied</button>
+      <button type="button" data-state="error">Error</button>
+    </div>
+  </div>
+</div>
+
+<main class="wrap">
+  <div class="grid" id="grid"></div>
+</main>
+
+<footer class="wrap">
+  <p>On a full-screen page: <kbd>1</kbd> to <kbd>7</kbd> jump to a state, <kbd>Space</kbd> plays the whole flow, <kbd>H</kbd> dismisses, <kbd>T</kbd> switches the backdrop, <kbd>M</kbd> uses your mic, and <kbd>Esc</kbd> while listening cancels, as it does in the app.</p>
+  <p>Copy and timings come from the app: messages from PillState, 600 ms hold after pasting, 2 s for the other outcomes, bars sampled every 120 ms with 0.55 smoothing, loudness mapped from −50 to 0 dBFS.</p>
+</footer>
+
+<script>
+(function () {
+  var root = document.documentElement;
+  var grid = document.getElementById('grid');
+  var theme = root.dataset.theme;
+  var looping = true;
+  var frames = [];
+
+  (window.FLOW_OPTIONS || []).forEach(function (o) {
+    var el = document.createElement('article');
+    el.className = 'tile';
+    el.innerHTML =
+      '<div class="frame"><iframe title="' + o.name + ' preview" src="options/' + o.id + '.html?embed&loop&theme=' + theme + '"></iframe></div>' +
+      '<div class="cap">' +
+        '<div class="cap-head"><h2>' + o.name + '</h2><span class="effort">SwiftUI effort: <b>' + o.effort.toLowerCase() + '</b></span>' +
+        '<a href="options/' + o.id + '.html">Open full screen</a></div>' +
+        '<p class="why">' + o.why + '</p>' +
+        '<p class="build">' + o.build + '</p>' +
+      '</div>';
+    grid.appendChild(el);
+    frames.push(el.querySelector('iframe'));
+  });
+
+  function send(msg) {
+    msg.type = 'flow';
+    frames.forEach(function (f) { if (f.contentWindow) f.contentWindow.postMessage(msg, location.origin); });
+  }
+  function markTheme() {
+    document.querySelectorAll('[data-theme-btn]').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.themeBtn === theme));
+    });
+  }
+  function markPlay(stateName) {
+    var p = document.getElementById('play');
+    p.setAttribute('aria-pressed', String(looping));
+    p.textContent = looping ? 'Pause loop' : 'Play loop';
+    document.querySelectorAll('[data-state]').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(!looping && b.dataset.state === stateName));
+    });
+  }
+
+  document.querySelectorAll('[data-theme-btn]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      theme = b.dataset.themeBtn;
+      root.dataset.theme = theme;
+      try { localStorage.setItem('flow-overlay-theme', theme); } catch (e) {}
+      send({ cmd: 'theme', value: theme });
+      markTheme();
+    });
+  });
+  document.getElementById('play').addEventListener('click', function () {
+    if (looping) { looping = false; send({ cmd: 'hide' }); markPlay(null); return; }
+    looping = true;
+    send({ cmd: 'play', loop: true });
+    markPlay(null);
+  });
+  document.querySelectorAll('[data-state]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      looping = false;
+      send({ cmd: 'state', value: b.dataset.state });
+      markPlay(b.dataset.state);
+    });
+  });
+  markTheme();
+  markPlay(null);
+})();
+</script>
+</body>
+</html>

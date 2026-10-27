@@ -1,0 +1,163 @@
+/* Meniscus: a drop of liquid glass. Everything that matters is the material; content is monochrome ink
+   with one system colour for the outcome icon. */
+
+@property --mn-glow {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgba(255, 255, 255, 0);
+}
+
+html[data-theme="light"] .mn {
+  --mn-ink: rgba(0, 0, 0, 0.84);
+  --mn-ink-dim: rgba(0, 0, 0, 0.5);
+  --mn-tint: rgba(255, 255, 255, 0.28);
+  --mn-edge: rgba(0, 0, 0, 0.1);
+  --mn-rim-a: rgba(255, 255, 255, 0.95);
+  --mn-rim-b: rgba(255, 255, 255, 0.55);
+  --mn-sheen: rgba(255, 255, 255, 0.7);
+  --mn-shadow: 0 12px 29px -10px rgba(40, 45, 80, 0.35), 0 2px 7px rgba(40, 45, 80, 0.1);
+}
+html[data-theme="dark"] .mn {
+  --mn-ink: rgba(255, 255, 255, 0.94);
+  --mn-ink-dim: rgba(255, 255, 255, 0.55);
+  --mn-tint: rgba(30, 30, 38, 0.3);
+  --mn-edge: rgba(255, 255, 255, 0.1);
+  --mn-rim-a: rgba(255, 255, 255, 0.6);
+  --mn-rim-b: rgba(255, 255, 255, 0.22);
+  --mn-sheen: rgba(255, 255, 255, 0.32);
+  --mn-shadow: 0 12px 29px -10px rgba(0, 0, 0, 0.65), 0 2px 7px rgba(0, 0, 0, 0.3);
+}
+
+.mn {
+  --mn-glow: rgba(255, 255, 255, 0);
+  transition: --mn-glow 0.45s ease;
+}
+.mn[data-s="success"] { --mn-glow: rgba(48, 209, 88, 0.32); }
+.mn[data-s="error"] { --mn-glow: rgba(255, 69, 58, 0.3); }
+.mn[data-s="noSpeech"] { --mn-glow: rgba(255, 159, 10, 0.28); }
+.mn[data-s="copied"] { --mn-glow: rgba(100, 210, 255, 0.3); }
+
+.mn-glass {
+  position: relative;
+  /* 85% scale (was 42px tall, 13px type, 17px side padding). */
+  height: 36px;
+  width: 119px;
+  border-radius: 999px;
+  overflow: hidden;
+  color: var(--mn-ink);
+  background:
+    radial-gradient(90% 160% at 14% 50%, var(--mn-glow), rgba(255, 255, 255, 0) 70%),
+    var(--mn-tint);
+  backdrop-filter: blur(16px) saturate(1.9) brightness(1.06);
+  -webkit-backdrop-filter: blur(16px) saturate(1.9) brightness(1.06);
+  box-shadow:
+    inset 0 0 0 0.5px var(--mn-edge),
+    inset 0 1.5px 1px -0.5px var(--mn-rim-a),
+    inset 0 -1px 1px -0.5px var(--mn-rim-b),
+    var(--mn-shadow);
+  font: 500 11px/1 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  letter-spacing: -0.005em;
+
+  /* hidden */
+  opacity: 0;
+  transform: translateY(15px) scale(0.86);
+  visibility: hidden;
+  transition:
+    width 0.55s cubic-bezier(0.3, 1.25, 0.4, 1),
+    opacity 0.22s ease-in,
+    transform 0.3s cubic-bezier(0.5, 0, 0.75, 0),
+    visibility 0s linear 0.32s;
+}
+[data-visible="true"] .mn-glass {
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  transition:
+    width 0.55s cubic-bezier(0.3, 1.25, 0.4, 1),
+    opacity 0.28s ease-out,
+    transform 0.62s cubic-bezier(0.2, 1.35, 0.35, 1),
+    visibility 0s;
+}
+
+/* Lens rim: brighter on the top-left and bottom-right edges, like light caught in a drop. */
+.mn-glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(150deg, var(--mn-rim-a), rgba(255, 255, 255, 0) 32%, rgba(255, 255, 255, 0) 68%, var(--mn-rim-b));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Thinking: a band of light passes through the glass. */
+.mn-sheen {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(100deg, rgba(255, 255, 255, 0) 35%, var(--mn-sheen) 50%, rgba(255, 255, 255, 0) 65%);
+  background-size: 300% 100%;
+  background-position: 120% 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.mn[data-s="thinking"] .mn-sheen { opacity: 1; animation: mn-sweep 1.5s cubic-bezier(0.45, 0, 0.3, 1) infinite; }
+@keyframes mn-sweep { from { background-position: 120% 0; } to { background-position: -20% 0; } }
+
+.mn-row {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  translate: -50% 0;
+  width: max-content;
+  display: flex;
+  align-items: center;
+  gap: 7.5px;
+  white-space: nowrap;
+}
+.mn-row.in { animation: mn-in 0.34s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+@keyframes mn-in { from { opacity: 0; transform: translateY(3px) scale(0.96); } }
+
+.mn-lead { display: flex; align-items: center; }
+.mn-bars { display: block; }
+.mn-icon { width: 15px; height: 15px; display: none; }
+.mn-icon svg { width: 100%; height: 100%; stroke-width: 2.3; display: block; }
+.mn-label { display: none; }
+.mn-time { font-variant-numeric: tabular-nums; color: var(--mn-ink-dim); display: none; }
+
+.mn[data-s="listening"] .mn-time { display: block; }
+.mn:not([data-s="listening"]) .mn-bars { display: none; }
+.mn:not([data-s="listening"]) .mn-label { display: block; }
+.mn:not([data-s="listening"]):not([data-s="thinking"]) .mn-icon { display: block; }
+.mn[data-s="thinking"] .mn-lead { display: none; }
+
+.mn[data-s="success"] .mn-icon { color: #30d158; }
+.mn[data-s="cancelled"] .mn-icon { color: var(--mn-ink-dim); }
+.mn[data-s="noSpeech"] .mn-icon { color: #ff9f0a; }
+.mn[data-s="copied"] .mn-icon { color: #40c8f4; }
+.mn[data-s="error"] .mn-icon { color: #ff453a; }
+
+.mn[data-s="success"] .mn-icon svg path { stroke-dasharray: 20; stroke-dashoffset: 20; animation: mn-draw 0.42s 0.08s cubic-bezier(0.3, 0.8, 0.3, 1) forwards; }
+@keyframes mn-draw { to { stroke-dashoffset: 0; } }
+
+.mn[data-s="thinking"] .mn-label {
+  color: transparent;
+  background: linear-gradient(90deg, var(--mn-ink-dim) 0%, var(--mn-ink-dim) 35%, var(--mn-ink) 50%, var(--mn-ink-dim) 65%, var(--mn-ink-dim) 100%);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: mn-sweep 1.5s cubic-bezier(0.45, 0, 0.3, 1) infinite;
+}
+
+/* Reduced motion: no travel, no overshoot, no sweeping light. */
+.reduce-motion .mn-glass,
+.reduce-motion [data-visible="true"] .mn-glass { transform: none; transition: opacity 0.2s, visibility 0s linear 0.2s; }
+.reduce-motion [data-visible="true"] .mn-glass { transition: opacity 0.2s, visibility 0s; }
+.reduce-motion .mn-row.in { animation: none; }
+.reduce-motion .mn[data-s="thinking"] .mn-sheen { animation: none; opacity: 0.4; background-position: 50% 0; }
+.reduce-motion .mn[data-s="thinking"] .mn-label { animation: none; color: var(--mn-ink-dim); background: none; }
+.reduce-motion .mn[data-s="success"] .mn-icon svg path { animation: none; stroke-dashoffset: 0; }

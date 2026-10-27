@@ -1,0 +1,75 @@
+/* Filament: one ink, one weight of line. The outline draws itself in from the bottom centre; the voice
+   is a single plucked string that bends into the outcome glyph. Drawn on a canvas; this file is layout. */
+
+html[data-theme="light"] .fl {
+  --fl-ink: rgba(0, 0, 0, 0.86);
+  --fl-dim: rgba(0, 0, 0, 0.45);
+  --fl-fill: rgba(255, 255, 255, 0.62);
+}
+html[data-theme="dark"] .fl {
+  --fl-ink: rgba(255, 255, 255, 0.92);
+  --fl-dim: rgba(255, 255, 255, 0.5);
+  --fl-fill: rgba(18, 18, 22, 0.55);
+}
+
+.fl {
+  --fl-p: 0;
+  font: 400 12px/1 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  letter-spacing: 0.01em;
+  color: var(--fl-ink);
+}
+
+.fl-pill {
+  position: relative;
+  height: 34px;
+  width: 150px;
+  transition: width 0.5s cubic-bezier(0.32, 0.95, 0.3, 1);
+  transform: translateY(calc((1 - var(--fl-p)) * 6px));
+}
+
+.fl-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--fl-fill);
+  backdrop-filter: blur(22px) saturate(1.4);
+  -webkit-backdrop-filter: blur(22px) saturate(1.4);
+  opacity: var(--fl-p);
+}
+
+.fl-canvas {
+  position: absolute;
+  left: 50%;
+  top: -4px;
+  translate: -50% 0;
+  pointer-events: none;
+}
+
+.fl-row {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  translate: -50% 0;
+  width: max-content;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+  opacity: calc((var(--fl-p) - 0.55) * 2.3);
+}
+.fl-row.in .fl-label,
+.fl-row.in .fl-time { animation: fl-in 0.4s 0.08s ease-out both; }
+@keyframes fl-in { from { opacity: 0; } }
+
+.fl-slot { display: block; height: 20px; }
+.fl-label { display: none; }
+.fl-time { font-variant-numeric: tabular-nums; color: var(--fl-dim); display: none; }
+.fl[data-s="listening"] .fl-time { display: block; }
+.fl:not([data-s="listening"]) .fl-label { display: block; }
+.fl[data-s="thinking"] .fl-label,
+.fl[data-s="cancelled"] .fl-label { color: var(--fl-dim); }
+
+.reduce-motion .fl-pill { transform: none; transition: none; }
+.reduce-motion .fl-row.in .fl-label,
+.reduce-motion .fl-row.in .fl-time { animation: none; }

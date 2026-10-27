@@ -8,6 +8,7 @@ final class AudioRecorder: Recorder {
     static let maxDuration: TimeInterval = 300
 
     var onMaxDurationReached: (@MainActor () -> Void)?
+    var onSamples: (@MainActor ([Float]) -> Void)?
     /// Normalized level (0…1) of each incoming chunk, for the waveform.
     var onLevel: (@MainActor (Float) -> Void)?
     /// CoreAudio device UID; nil = system default.
@@ -109,7 +110,12 @@ final class AudioRecorder: Recorder {
     private func append(_ samples: [Float]) {
         guard isRecording else { return }
         onLevel?(AudioLevel.normalized(samples))
-        if accumulator.append(samples) { onMaxDurationReached?() }
+        guard !accumulator.isFull else { return }
+        // Exactly what the accumulator keeps, so listeners see the same audio `stop()` returns.
+        let kept = samples.count <= accumulator.maxSamples - accumulator.samples.count
+            ? samples : Array(samples.prefix(accumulator.maxSamples - accumulator.samples.count))
+        onSamples?(kept)
+        if accumulator.append(kept) { onMaxDurationReached?() }
     }
 
     /// Built in a nonisolated context so the block isn't inferred as @MainActor.

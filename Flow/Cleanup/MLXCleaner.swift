@@ -6,7 +6,7 @@ import MLXLLM
 import MLXLMCommon
 import Tokenizers
 
-/// Local cleanup with a small Qwen3 model on the GPU via MLX.
+/// Local cleanup with a small Qwen3 model on the GPU via MLX. The backup to `AppleIntelligenceCleaner` (spec §11 amendment 8).
 actor MLXCleaner: Cleaner, ModelBackend {
     nonisolated let displayName = "Cleanup model (Qwen3)"
 
@@ -145,9 +145,9 @@ actor MLXCleaner: Cleaner, ModelBackend {
         }
     }
 
-    /// Roughly 1 token ≈ 4 chars. Allows ~2× the input, capped at 2048.
+    /// See `CleanupPrompt.maxTokens(for:)`.
     static func maxTokens(for transcript: String) -> Int {
-        min(2048, transcript.count / 2 + 64)
+        CleanupPrompt.maxTokens(for: transcript)
     }
 
     /// Qwen3 can still emit an empty <think></think> block when thinking is disabled.

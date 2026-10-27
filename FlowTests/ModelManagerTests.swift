@@ -8,6 +8,7 @@ actor FakeBackend: ModelBackend {
     private var failLoad = false
     private(set) var downloads = 0
     private(set) var loads = 0
+    private(set) var warms = 0
     private(set) var unloads = 0
 
     init(downloaded: Bool, failDownload: Bool = false) {
@@ -28,6 +29,10 @@ actor FakeBackend: ModelBackend {
     func load() async throws {
         loads += 1
         if failLoad { throw FakeError.boom }
+    }
+    func warm() async throws {
+        warms += 1
+        try await load()
     }
     func unload() async { unloads += 1 }
 }
@@ -101,13 +106,17 @@ struct ModelManagerTests {
         #expect(m.status(of: .transcriber) == .ready)
     }
 
-    @Test func warmUpLoadsBothReadyModelsAndRestartsKeepWarm() async {
+    @Test func warmUpWarmsBothReadyModelsAndRestartsKeepWarm() async {
         let t = FakeBackend(downloaded: true), c = FakeBackend(downloaded: true)
         let m = manager(t, c)
         await m.prepare(.transcriber).value
         await m.prepare(.cleaner).value
         #expect(await eventually { await gate.waiterCount == 2 })
+        // Preparing warms too, so the first dictation after launch doesn't pay for a cold model.
+        #expect(await t.warms == 1)
         await m.warmUp().value
+        #expect(await t.warms == 2)
+        #expect(await c.warms == 2)
         #expect(await t.loads == 2)
         #expect(await c.loads == 2)
         #expect(await eventually { await gate.waiterCount == 3 })

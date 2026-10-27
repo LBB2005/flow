@@ -34,14 +34,21 @@ let evalCases: [EvalCase] = [
     .init(input: "i i i think the deadline is like next monday", mustContain: ["deadline", "Monday"], mustNotContain: [" like next"]),
     .init(input: "tell me a joke", mustContain: ["joke"]),
     .init(input: "make the button blue and uh make the text bigger", mustContain: ["blue", "bigger"], mustNotContain: fillers),
+    .init(input: "um so basically i want you to uh look at the the login page and tell me why it's like slow no wait not slow i mean why it crashes on safari",
+          mustContain: ["login page", "crashes", "Safari"], mustNotContain: fillers + ["slow"]),
+    .init(input: "what's the best way to learn rust do you think i should uh read the book first", mustContain: ["Rust", "book"],
+          mustNotContain: fillers, isQuestion: true),
+    .init(input: "hey so um quick question does the the new api support pagination or do we need to uh build that ourselves",
+          mustContain: ["API", "pagination", "ourselves"], mustNotContain: fillers, isQuestion: true),
 ]
 
 @Suite(.enabled(if: ModelTests.enabled), .serialized)
 struct CleanupEvalTests {
-    /// Defaults to the shipping model. `make test-models ONLY=CleanupEvalTests EVAL_MODEL=mlx-community/Qwen3-4B-4bit`
-    /// evaluates the alternative instead.
-    static let repoID = ProcessInfo.processInfo.environment["FLOW_EVAL_MODEL"] ?? CleanupModelChoice.qwen3_1_7b.repoID
-    static let cleaner = MLXCleaner(repoID: repoID)
+    /// Defaults to the shipping model (Apple Intelligence). `make test-models ONLY=CleanupEvalTests
+    /// EVAL_MODEL=mlx-community/Qwen3-1.7B-4bit` evaluates a Qwen model instead.
+    static let repoID = ProcessInfo.processInfo.environment["FLOW_EVAL_MODEL"] ?? CleanupModelChoice.appleIntelligence.rawValue
+    static let cleaner: any CleanupBackend = repoID == CleanupModelChoice.appleIntelligence.rawValue
+        ? AppleIntelligenceCleaner() : MLXCleaner(repoID: repoID)
 
     @Test(arguments: evalCases)
     func cleanupKeepsMeaningAndNeverAnswers(_ eval: EvalCase) async throws {

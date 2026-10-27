@@ -18,6 +18,7 @@ final class FakeRecorder: Recorder {
     var startError: Error?
     private(set) var events: [String] = []
     var onMaxDurationReached: (@MainActor () -> Void)?
+    var onSamples: (@MainActor ([Float]) -> Void)?
 
     func start() throws {
         if let startError { throw startError }
@@ -73,9 +74,60 @@ final class FakeInserter: TextInserter {
 }
 
 @MainActor
+final class FakeMediaPauser: MediaPauser {
+    private(set) var events: [String] = []
+    /// What the inserter had pasted when `resume()` ran, to check resume comes after the paste.
+    private(set) var insertedAtResume: [String]?
+    var inserter: FakeInserter?
+
+    func pause() { events.append("pause") }
+    func resume() {
+        events.append("resume")
+        insertedAtResume = inserter?.inserted
+    }
+}
+
+@MainActor
 final class FakePill: PillPresenter {
     private(set) var shown: [PillState] = []
     private(set) var hideCount = 0
     func show(_ state: PillState) { shown.append(state) }
     func hide() { hideCount += 1 }
+}
+
+/// Records every call and answers "p1", "p2", … in order; can fail or wait for the test to let it finish.
+final class ScriptedTranscriber: Transcriber, @unchecked Sendable {
+    struct Call: Equatable { let sampleCount: Int; let context: String? }
+    private let lock = NSLock()
+    private var _calls: [Call] = []
+    private var _cancelled = 0
+    private let failOnCall: Int?
+    private let gate: Gate?
+
+    init(failOnCall: Int? = nil, gate: Gate? = nil) {
+        self.failOnCall = failOnCall
+        self.gate = gate
+    }
+
+    var calls: [Call] { lock.withLock { _calls } }
+    /// Calls that ended because their task was cancelled.
+    var cancelled: Int { lock.withLock { _cancelled } }
+
+    func transcribe(_ samples: [Float]) async throws -> String {
+        try await transcribe(samples, context: nil)
+    }
+
+    func transcribe(_ samples: [Float], context: String?) async throws -> String {
+        let number = lock.withLock {
+            _calls.append(Call(sampleCount: samples.count, context: context))
+            return _calls.count
+        }
+        if let gate { await gate.wait() }
+        if Task.isCancelled {
+            lock.withLock { _cancelled += 1 }
+            throw CancellationError()
+        }
+        if number == failOnCall { throw FakeError.boom }
+        return "p\(number)"
+    }
 }

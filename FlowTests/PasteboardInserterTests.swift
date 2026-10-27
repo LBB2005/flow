@@ -42,14 +42,52 @@ struct PasteboardInserterTests {
         // Review Focus 2: an image on the clipboard must survive the dictation.
         let image: [[String: Data]] = [["public.png": Data([0x89, 0x50, 0x4E, 0x47]), "public.tiff": Data([1, 2])]]
         pasteboard.items = image
-        await inserter(.editable).insert("Hello world.")
+        let inserter = inserter(.editable)
+        await inserter.insert("Hello world.")
+        await inserter.restoring?.value
         #expect(keys.pastes == 1)
         #expect(pasteboard.items == image)
     }
 
     @Test func emptyClipboardIsRestoredToEmpty() async {
-        await inserter(.editable).insert("Hello")
+        let inserter = inserter(.editable)
+        await inserter.insert("Hello")
+        await inserter.restoring?.value
         #expect(pasteboard.items.isEmpty)
+    }
+
+    @Test func returnsOnceThePasteIsSentAndRestoresAfterTheDelay() async {
+        // "Pasted" shows as soon as ⌘V is sent; the target app still reads our text during the delay.
+        pasteboard.items = [["public.png": Data([1])]]
+        let gate = Gate()
+        let inserter = inserter(.editable, sleep: { _ in await gate.wait() })
+        await inserter.insert("Hello world.")
+        #expect(keys.pastes == 1)
+        #expect(pasteboard.text == "Hello world.")
+        #expect(inserter.restoring != nil)
+
+        #expect(await eventually { await gate.waiterCount == 1 })
+        await gate.open()
+        await inserter.restoring?.value
+        #expect(pasteboard.items == [["public.png": Data([1])]])
+        #expect(inserter.restoring == nil)
+    }
+
+    @Test func backToBackDictationsStillRestoreTheOriginalClipboard() async {
+        // The second paste starts before the first restore: it must not save the first dictation as "the clipboard".
+        pasteboard.items = [["public.png": Data([1])]]
+        let gate = Gate()
+        let inserter = inserter(.editable, sleep: { _ in await gate.wait() })
+        await inserter.insert("First.")
+        await inserter.insert("Second.")
+        #expect(pasteboard.text == "Second.")
+        #expect(keys.pastes == 2)
+
+        // Both restore tasks are waiting (the first one is cancelled and gives up once woken).
+        #expect(await eventually { await gate.waiterCount == 2 })
+        await gate.open()
+        await inserter.restoring?.value
+        #expect(pasteboard.items == [["public.png": Data([1])]])
     }
 
     @Test(arguments: [FocusState.notEditable, .unknown])
@@ -65,9 +103,11 @@ struct PasteboardInserterTests {
     @Test func doesNotClobberSomethingCopiedDuringTheDelay() async {
         pasteboard.items = [["public.png": Data([1])]]
         let pb = pasteboard
-        await inserter(.editable, sleep: { _ in
+        let inserter = inserter(.editable, sleep: { _ in
             await MainActor.run { _ = pb.setString("user copied this") }
-        }).insert("Hello world.")
+        })
+        await inserter.insert("Hello world.")
+        await inserter.restoring?.value
         #expect(pasteboard.text == "user copied this")
     }
 }

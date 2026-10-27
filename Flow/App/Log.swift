@@ -7,4 +7,5 @@ enum Log {
     static let pipeline = Logger(subsystem: subsystem, category: "pipeline")
     static let models = Logger(subsystem: subsystem, category: "models")
     static let insert = Logger(subsystem: subsystem, category: "insert")
+    static let media = Logger(subsystem: subsystem, category: "media")
 }

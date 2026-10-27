@@ -307,3 +307,74 @@ These override earlier sections where they conflict.
    (um, uh, er, erm, hmm, mm), collapses immediate stutters ("i i think" → "I think"), capitalises "I" and
    the first word, and ends the text with `.`, or `?` when it starts with a question word. If nothing is
    left, the pill shows "Didn't catch that" and nothing is pasted.
+7. **Pause media while dictating (2026-10-18, user-approved).** When a dictation starts, Flow pauses the
+   Spotify app if it is playing and any playing `<video>`/`<audio>` in Chrome tabs (YouTube, Netflix, HBO).
+   Already-paused media is left alone. When the dictation ends (pasted, cancelled, no speech, error, or the
+   mic failed to open) it resumes only what it paused, and skips anything the user already resumed. Plain
+   resume, no fades or rewind. Always on, no setting. `SystemMediaPauser` runs AppleScript via `osascript`
+   on a serial background queue so the hotkey never waits. Needs Automation permission for Spotify and
+   Chrome (macOS asks on first use) and Chrome's View → Developer → Allow JavaScript from Apple Events.
+   Safari and other apps are out of scope.
+8. **Apple Intelligence cleans up by default, Qwen is the backup (2026-10-21, user-approved).** Cleanup runs on
+   Apple's on-device Foundation Models (`AppleIntelligenceCleaner`, macOS 26): built in, no download, nothing leaves
+   the Mac. Whisper still transcribes. Settings → Cleanup model lists "Apple Intelligence: built in, no download"
+   (the new default) plus both Qwen3 models. If Apple Intelligence is selected but unavailable (turned off in System
+   Settings, still getting ready, or an ineligible Mac), Flow uses Qwen3 1.7B via MLX automatically, downloading it if
+   needed, and Settings says why. `CleanupEngine.resolve` makes that choice; `AppModel.refreshCleanupEngine()` re-checks
+   at launch, on every recording start and whenever Settings is opened or changed, so turning Apple Intelligence on or
+   off takes effect without a restart.
+   - Prompt: the same `CleanupPrompt.system`, with the worked examples as earlier prompt → response turns, plus
+     three Apple-only examples (a question, a request, a filler-heavy self-correction) that stop it answering
+     questions. Greedy sampling, same token cap as Qwen, guardrails set to `permissiveContentTransformations`
+     (meant for rewriting the user's own text). Every clean gets a fresh session (no carry-over between
+     dictations); the next one is prewarmed after each clean, which halves latency.
+   - Errors (unavailable, guardrail, context window, timeout) throw, and the validator still checks the output, so
+     failures paste the raw transcript as in §6.
+   - Known weakness: after a bare "no" ("Tuesday no Wednesday") it can keep the first word; "no wait" works. Qwen
+     misses other corrections, so this isn't a regression.
+   - Migration: a saved Qwen3 1.7B (the old default) moves to Apple Intelligence once. A deliberate Qwen3 4B is
+     kept, and choosing Qwen again afterwards sticks.
+9. **Overlay: "Meniscus" floating glass pill (2026-10-21, user-approved).** Replaces the notch Midnight Capsule
+   (item 3). Chosen from five browser mockups (`design/overlay-options/`, served with `python3 -m http.server`)
+   and shrunk to 85%. A Liquid Glass capsule (`.glassEffect(.regular, in: .capsule)`) floats bottom-centre,
+   **16 pt above the Dock** (the screen's `visibleFrame`), on the **screen under the mouse** (else the key
+   window's screen), re-picked each time it appears. It is no longer tied to the built-in display.
+   - Size: **36 pt** tall, full capsule radius, **14.5 pt** side padding, **7.5 pt** gap, **11 pt medium** type.
+     Width follows the content per state (e.g. listening ≈ 114 pt, pasted ≈ 88 pt, "Microphone access needed"
+     ≈ 197 pt), animated with a spring. Long messages truncate inside a 420 pt panel.
+   - Content is monochrome (primary/secondary ink): **11 bars**, 2.5 pt wide with 2.5 pt gaps, 2.5–17 pt tall
+     (same Calm Scroll sampling and smoothing as item 4), plus the timer. Outcomes add one 15 pt icon in a system
+     colour (pasted green tick drawn on, cancelled grey ✕, no speech amber mic-slash, copied cyan clipboard, error
+     red triangle) and a faint wash of that colour inside the glass. A bright lens rim catches the top-left and
+     bottom-right edges. While thinking, a band of light sweeps through the glass and the "Thinking…" label.
+   - Motion: rises 15 pt from below at 86% scale with a little overshoot; sinks back the same way in 0.3 s.
+     Reduce Motion: fades only, no rise, sweep or tick drawing.
+   - States, copy and auto-hide timings are unchanged (`PillState`). Values live in `Theme.Pill`.
+10. **Speed without losing accuracy (2026-10-21, user-approved: keep Whisper large-v3 Turbo, accuracy first).**
+    Measured on the M4 Pro with `LatencyBenchmarkTests` and `IncrementalAccuracyTests` (`make test-models`).
+    - **Models stay loaded: keep-warm defaults to Always** (~600 MB resident; 1.6 GB with Qwen). A saved shorter time
+      moves to Always once (`keepWarmMigratedToAlways`); choosing a shorter one afterwards sticks. This replaces the
+      10-minute default in §2 and §5.
+    - **Warm, not just loaded.** `ModelBackend.warm()` runs after launch, after a model switch, when the Mac wakes and
+      when a recording starts (overlapping the speech). Whisper transcribes a moment of silence if it hasn't run for
+      60 s (the first run after 5 idle minutes was +150 ms). Apple Intelligence re-prewarms its waiting session: after
+      5 idle minutes a clean took 1.65 s instead of ~0.4 s.
+    - **Transcribe while speaking** (Settings → "Transcribe while you speak", on by default). `ChunkPlanner` cuts the
+      audio in the middle of pauses (≥ 0.5 s after ≥ 6 s of speech; ≥ 0.25 s after 20 s; at the quietest 50 ms after
+      27 s, so a piece always fits one Whisper window). `IncrementalTranscription` transcribes the pieces one at a
+      time in the background, each with the text so far as Whisper's previous-text prompt, and joins them with
+      spaces. On release only the audio after the last finished piece is transcribed, without a prompt (each prompt
+      token costs a decoder step); if that's only silence, or under 0.2 s of sound (the hotkey's click), it's
+      skipped. Pieces still queued merge into that tail. Cancelling the recording cancels the pieces. Any failure
+      falls back to the whole clip. Accuracy gate: 7 dictations of 8–39 s with pauses mid-sentence, 453 words:
+      word error rate 2.4% incremental vs 2.4% whole clip. Release-to-text: 31–39 s dictations 1.9–2.0 s → 0.7–1.3 s;
+      under 30 s about the same (~0.7–1.3 s), because Whisper's ~0.57 s encoder cost is per run, whatever its length.
+    - **Long clips no longer lose words.** Whole-clip transcription used to cut at exactly 30 s, and Whisper dropped
+      the sentence running into the cut (a 35 s dictation lost 70 of 91 words; WER 20.5% over the set). Clips longer
+      than one window are now split at the longest pause (`chunkingStrategy: .vad`).
+    - **Leading and trailing silence is trimmed** before transcribing (`SilenceDetector.speechRange`, keeping 0.3 s
+      before and 0.5 s after the speech). Clips of 1 s or less are padded with silence to 2 s: WhisperKit never
+      decodes the last second of a clip, so a quick "yes" used to come back empty.
+    - **"Pasted" shows as soon as ⌘V is sent**, and media resumes then. The previous clipboard is still restored
+      400 ms later, in the background; a paste that starts before that restore takes over the saved clipboard.
+    - Whisper calls run one at a time (`WhisperKitTranscriber` queue); unloading waits for a transcription in progress.

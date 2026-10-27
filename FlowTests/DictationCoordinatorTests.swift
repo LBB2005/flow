@@ -10,6 +10,7 @@ struct DictationCoordinatorTests {
     let recorder = FakeRecorder()
     let inserter = FakeInserter()
     let pill = FakePill()
+    let media = FakeMediaPauser()
 
     private func makeCoordinator(
         transcript: Result<String, Error> = .success(longRaw),
@@ -21,7 +22,7 @@ struct DictationCoordinatorTests {
         let transcriber = FakeTranscriber(transcript)
         let coordinator = DictationCoordinator(
             recorder: recorder, transcriber: transcriber, cleaner: cleaner,
-            inserter: inserter, pill: pill,
+            inserter: inserter, pill: pill, media: media,
             isCleanupEnabled: { cleanupEnabled },
             blockedReason: { blockedReason },
             cleanupTimeout: timeout
@@ -224,10 +225,134 @@ struct DictationCoordinatorTests {
         #expect(count.value == 1)
     }
 
+    // MARK: - Pausing media while dictating
+
+    @Test func mediaPausesOnBeginAndResumesAfterThePaste() async {
+        media.inserter = inserter
+        let (c, _, _) = makeCoordinator()
+        c.handle(.begin)
+        #expect(media.events == ["pause"])
+        c.handle(.confirm)
+        c.handle(.finish)
+        await c.processing?.value
+        #expect(media.events == ["pause", "resume"])
+        #expect(media.insertedAtResume == [Self.longCleaned])
+    }
+
+    @Test func mediaResumesAfterCancel() {
+        let (c, _, _) = makeCoordinator()
+        c.handle(.begin)
+        c.handle(.cancel(.escape))
+        #expect(media.events == ["pause", "resume"])
+    }
+
+    @Test func mediaResumesWhenNothingWasHeard() async {
+        recorder.samplesToReturn = FakeAudio.silence
+        let (c, _, _) = makeCoordinator()
+        await dictate(c)
+        #expect(media.events == ["pause", "resume"])
+    }
+
+    @Test func mediaResumesWhenTranscriptionFails() async {
+        let (c, _, _) = makeCoordinator(transcript: .failure(FakeError.boom))
+        await dictate(c)
+        #expect(media.events == ["pause", "resume"])
+    }
+
+    @Test func mediaResumesWhenTheMicrophoneFailsToStart() {
+        recorder.startError = FakeError.boom
+        let (c, _, _) = makeCoordinator()
+        c.handle(.begin)
+        #expect(media.events == ["pause", "resume"])
+    }
+
+    @Test func mediaIsUntouchedWhenDictationIsBlocked() {
+        let (c, _, _) = makeCoordinator(blockedReason: "Models not ready yet")
+        c.handle(.begin)
+        #expect(media.events.isEmpty)
+    }
+
+    @Test func hotkeyWhileProcessingDoesNotPauseAgain() async {
+        let (c, _, _) = makeCoordinator(cleaner: FakeCleaner(.hangs), timeout: .milliseconds(100))
+        c.handle(.begin)
+        c.handle(.finish)
+        c.handle(.begin)
+        await c.processing?.value
+        #expect(media.events == ["pause", "resume"])
+    }
+
     @Test func transcriberCanBeSwapped() async {
         let (c, _, _) = makeCoordinator(cleanupEnabled: false)
         c.transcriber = FakeTranscriber(.success("swapped"))
         await dictate(c)
         #expect(inserter.inserted == ["swapped"])
+    }
+
+    // MARK: - Transcribing while speaking (spec §11 amendment 10)
+
+    private func makeIncrementalCoordinator(_ transcriber: ScriptedTranscriber) -> DictationCoordinator {
+        DictationCoordinator(
+            recorder: recorder, transcriber: transcriber, cleaner: FakeCleaner(.fails),
+            inserter: inserter, pill: pill, media: media,
+            isCleanupEnabled: { false }, isIncrementalEnabled: { true })
+    }
+
+    @Test func phrasesAreTranscribedWhileRecordingAndStitchedOnRelease() async {
+        let transcriber = ScriptedTranscriber()
+        let c = makeIncrementalCoordinator(transcriber)
+        recorder.samplesToReturn = IncrementalTranscriptionTests.twoPhrases
+        c.handle(.begin)
+        recorder.onSamples?(IncrementalTranscriptionTests.twoPhrases)
+        #expect(await eventually { transcriber.calls.count == 1 })
+
+        c.handle(.finish)
+        await c.processing?.value
+        #expect(transcriber.calls.count == 2)
+        #expect(inserter.inserted == ["p1 p2"])
+        #expect(pill.shown.last == .success)
+    }
+
+    @Test func failedBackgroundPieceFallsBackToTheWholeClip() async {
+        let transcriber = ScriptedTranscriber(failOnCall: 1)
+        let c = makeIncrementalCoordinator(transcriber)
+        recorder.samplesToReturn = IncrementalTranscriptionTests.twoPhrases
+        c.handle(.begin)
+        recorder.onSamples?(IncrementalTranscriptionTests.twoPhrases)
+        c.handle(.finish)
+        await c.processing?.value
+        // Call 1 (the piece) failed; call 2 is the whole clip, minus its trailing silence.
+        #expect(inserter.inserted == ["p2"])
+        #expect(transcriber.calls.last?.sampleCount == SilenceDetector.trimmed(IncrementalTranscriptionTests.twoPhrases).count)
+    }
+
+    @Test func cancellingTheRecordingCancelsBackgroundTranscription() async {
+        let gate = Gate()
+        let transcriber = ScriptedTranscriber(gate: gate)
+        let c = makeIncrementalCoordinator(transcriber)
+        c.handle(.begin)
+        recorder.onSamples?(IncrementalTranscriptionTests.twoPhrases)
+        #expect(await eventually { await gate.waiterCount == 1 })
+
+        c.handle(.cancel(.escape))
+        await gate.open()
+        #expect(await eventually { transcriber.cancelled == 1 })
+        #expect(transcriber.calls.count == 1)
+        #expect(inserter.inserted.isEmpty)
+        #expect(c.phase == .idle)
+    }
+
+    @Test func incrementalOffTranscribesTheTrimmedWholeClipOnce() async {
+        let transcriber = ScriptedTranscriber()
+        let c = DictationCoordinator(
+            recorder: recorder, transcriber: transcriber, cleaner: FakeCleaner(.fails),
+            inserter: inserter, pill: pill, isCleanupEnabled: { false })
+        let audio = Signal.pause(2) + Signal.speech(3) + Signal.pause(2)
+        recorder.samplesToReturn = audio
+        c.handle(.begin)
+        recorder.onSamples?(audio)
+        c.handle(.finish)
+        await c.processing?.value
+        #expect(transcriber.calls == [.init(sampleCount: SilenceDetector.trimmed(audio).count, context: nil)])
+        #expect(SilenceDetector.trimmed(audio).count < audio.count)
     }
 }

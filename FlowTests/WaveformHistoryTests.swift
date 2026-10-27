@@ -2,9 +2,9 @@ import Testing
 @testable import Flow
 
 struct WaveformHistoryTests {
-    @Test func startsWithSevenZeroes() {
+    @Test func startsWithOneZeroPerBar() {
         let history = WaveformHistory()
-        #expect(history.levels == [Float](repeating: 0, count: 7))
+        #expect(history.levels == [Float](repeating: 0, count: Theme.Waveform.barCount))
     }
 
     @Test func appendsOncePerWindowUsingTheLoudestLevel() {

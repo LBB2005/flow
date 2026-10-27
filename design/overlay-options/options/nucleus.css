@@ -1,0 +1,75 @@
+/* Nucleus: a pearl orb, nothing else, while you speak. When there is something to read, a quiet
+   capsule opens to the right of the orb and holds the label. The orb is drawn on a canvas. */
+
+html[data-theme="light"] .nu {
+  --nu-bg: rgba(255, 255, 255, 0.66);
+  --nu-edge: rgba(0, 0, 0, 0.08);
+  --nu-ink: #1d1d22;
+  --nu-shadow: 0 12px 30px -14px rgba(50, 40, 110, 0.35);
+}
+html[data-theme="dark"] .nu {
+  --nu-bg: rgba(30, 30, 38, 0.58);
+  --nu-edge: rgba(255, 255, 255, 0.1);
+  --nu-ink: #f4f4f7;
+  --nu-shadow: 0 12px 30px -14px rgba(0, 0, 0, 0.6);
+}
+
+.nu {
+  font: 650 13px/1 ui-rounded, "SF Pro Rounded", "Nunito", -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--nu-ink);
+}
+
+.nu-shell {
+  position: relative;
+  height: 48px;
+  width: 48px;
+  transition: width 0.55s cubic-bezier(0.3, 1.15, 0.4, 1);
+}
+
+.nu-bg {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--nu-bg);
+  box-shadow: inset 0 0 0 0.5px var(--nu-edge), var(--nu-shadow);
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.nu.has-label .nu-bg { opacity: 1; transition: opacity 0.35s 0.05s ease; }
+[data-visible="false"] .nu .nu-bg { opacity: 0; transition: opacity 0.2s ease; }
+
+.nu-orb {
+  position: absolute;
+  left: 24px;
+  top: 24px;
+  translate: -50% -50%;
+  pointer-events: none;
+}
+
+.nu-row {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: max-content;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 2px;
+  white-space: nowrap;
+}
+.nu-slot { width: 44px; height: 44px; display: grid; place-items: center; }
+.nu-icon { width: 14px; height: 14px; color: rgba(255, 255, 255, 0.95); opacity: 0; filter: drop-shadow(0 0.5px 1px rgba(0, 0, 0, 0.25)); }
+.nu-icon svg { width: 100%; height: 100%; stroke-width: 2.6; display: block; }
+.nu.has-label .nu-icon { opacity: 1; transition: opacity 0.25s 0.22s; }
+.nu-label { display: none; }
+.nu.has-label .nu-label { display: block; }
+.nu-row.in .nu-label { animation: nu-in 0.42s 0.1s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+@keyframes nu-in { from { opacity: 0; transform: translateX(-6px); } }
+[data-visible="false"] .nu .nu-label,
+[data-visible="false"] .nu .nu-icon { opacity: 0; transition: opacity 0.15s; }
+
+.reduce-motion .nu-shell { transition: none; }
+.reduce-motion .nu-row.in .nu-label { animation: none; }

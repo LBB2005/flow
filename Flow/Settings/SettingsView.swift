@@ -41,15 +41,22 @@ struct SettingsView: View {
             Section("Models") {
                 modelPicker("Speech recognition", .transcriber, selection: $settings.whisperModel)
                 modelPicker("Cleanup model", .cleaner, selection: $settings.cleanupModel)
+                if settings.cleanupModel == .appleIntelligence, let message = app.appleIntelligence.fallbackMessage {
+                    Text(message).font(.callout).foregroundStyle(.orange)
+                }
                 Toggle(isOn: $settings.cleanupEnabled) {
                     Text("Clean up text")
                     Text("Removes ums and repeats, fixes punctuation. Off pastes the raw transcript.")
+                }
+                Toggle(isOn: $settings.transcribeWhileSpeaking) {
+                    Text("Transcribe while you speak")
+                    Text("Long dictations paste sooner. Same accuracy as transcribing at the end.")
                 }
                 Picker(selection: $settings.keepWarm) {
                     ForEach(KeepWarm.allCases) { Text($0.label).tag($0) }
                 } label: {
                     Text("Keep models loaded for")
-                    Text("Longer = instant dictation; shorter frees about 2 GB of memory sooner.")
+                    Text("Always = no waiting after a break. Shorter frees about 600 MB (1.6 GB with Qwen) when idle.")
                 }
             }
 
@@ -80,6 +87,7 @@ struct SettingsView: View {
     private func refresh() {
         microphones = AudioDevices.inputDevices()
         app.permissions.refresh()
+        app.refreshCleanupEngine()
     }
 
     private func openMicrophoneAccess() {

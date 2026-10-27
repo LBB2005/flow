@@ -58,7 +58,7 @@ final class ModelManager {
                     }
                 }
                 try Task.checkCancellation()
-                try await backend.load()
+                try await backend.warm()
                 self.statuses[kind] = .ready
                 self.touch()
                 Log.models.notice("\(backend.displayName, privacy: .public) ready")
@@ -82,9 +82,9 @@ final class ModelManager {
         return prepare(kind)
     }
 
-    /// Call when a recording starts: loads every ready model in the background (a no-op for models still loaded)
-    /// so a reload after the keep-warm unload overlaps with the user speaking, and restarts the keep-warm countdown.
-    /// Models that are still checking, downloading or failed are left to `prepare`.
+    /// Call when a recording starts or the Mac wakes: loads and warms every ready model in the background, so a
+    /// reload after the keep-warm unload, or the slow first answer after a break, overlaps with the user speaking.
+    /// Restarts the keep-warm countdown. Models that are still checking, downloading or failed are left to `prepare`.
     @discardableResult
     func warmUp() -> Task<Void, Never> {
         touch()
@@ -94,7 +94,7 @@ final class ModelManager {
                 for backend in targets {
                     group.addTask {
                         do {
-                            try await backend.load()
+                            try await backend.warm()
                         } catch {
                             Log.models.error("warm-up of \(backend.displayName, privacy: .public) failed: \(error.localizedDescription)")
                         }

@@ -1,35 +1,35 @@
 import AppKit
 import SwiftUI
 
-/// Borderless panel that can sit over the menu bar and notch.
-final class NotchPanel: NSPanel {
-    override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect { frameRect }
+/// Borderless panel for the floating pill. Never becomes key, so the target app keeps focus.
+final class PillPanel: NSPanel {
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
 }
 
-/// Shows the notch overlay. Never takes focus from the app being dictated into.
+/// Shows the floating pill above the Dock. Never takes focus from the app being dictated into.
 @MainActor
 final class OverlayController: PillPresenter {
     let model = PillModel()
-    private var panel: NotchPanel?
+    private var panel: PillPanel?
     private var hideTask: Task<Void, Never>?
     private var orderOutTask: Task<Void, Never>?
 
     func show(_ state: PillState) {
         hideTask?.cancel()
         orderOutTask?.cancel()
-        if state == .listening && (model.state != .listening || !model.isExpanded) {
+        if state == .listening && (model.state != .listening || !model.isVisible) {
             model.resetLevels()
             model.recordingStartedAt = .now
         }
         let panel = self.panel ?? makePanel()
-        if !model.isExpanded {
+        if !model.isVisible {
+            // Re-placed on every appearance so it follows the user to whichever screen they're on.
             place(panel)
             panel.orderFrontRegardless()
         }
         model.state = state
-        model.isExpanded = true
+        model.isVisible = true
 
         if let delay = state.autoHideAfter {
             hideTask = Task { [weak self] in
@@ -42,10 +42,10 @@ final class OverlayController: PillPresenter {
 
     func hide() {
         hideTask?.cancel()
-        guard model.isExpanded else { return }
-        model.isExpanded = false
+        guard model.isVisible else { return }
+        model.isVisible = false
         orderOutTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(Theme.Motion.collapseDuration + 0.05))
+            try? await Task.sleep(for: .seconds(Theme.Motion.disappearDuration + 0.05))
             guard !Task.isCancelled else { return }
             self?.panel?.orderOut(nil)
         }
@@ -55,8 +55,8 @@ final class OverlayController: PillPresenter {
         model.push(level: level, at: ProcessInfo.processInfo.systemUptime)
     }
 
-    private func makePanel() -> NotchPanel {
-        let panel = NotchPanel(
+    private func makePanel() -> PillPanel {
+        let panel = PillPanel(
             contentRect: .zero,
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
@@ -69,30 +69,23 @@ final class OverlayController: PillPresenter {
         panel.hasShadow = false
         panel.ignoresMouseEvents = true
         panel.hidesOnDeactivate = false
-        panel.contentView = NSHostingView(rootView: NotchView(model: model))
+        panel.contentView = NSHostingView(rootView: PillView(model: model))
         self.panel = panel
         return panel
     }
 
-    /// Always the built-in (notched) display; the main screen if it's off (lid closed).
+    /// Bottom-centre of the screen under the mouse, 16 pt above the Dock.
     private func place(_ panel: NSPanel) {
         guard let screen = Self.targetScreen() else { return }
-        let notch = NotchGeometry.metrics(
-            screenFrame: screen.frame,
-            safeAreaTop: screen.safeAreaInsets.top,
-            auxiliaryLeftWidth: screen.auxiliaryTopLeftArea?.width,
-            auxiliaryRightWidth: screen.auxiliaryTopRightArea?.width)
-        model.notchSize = CGSize(width: notch.width, height: notch.height)
-        panel.setFrame(NotchGeometry.panelFrame(notch: notch), display: false)
+        panel.setFrame(PillGeometry.panelFrame(visibleFrame: screen.visibleFrame), display: false)
     }
 
     static func targetScreen() -> NSScreen? {
-        let builtIn = NSScreen.screens.first { screen in
-            guard let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else {
-                return false
-            }
-            return CGDisplayIsBuiltin(number.uint32Value) != 0
-        }
-        return builtIn ?? NSScreen.main
+        let screens = NSScreen.screens
+        let fallback = NSScreen.main.flatMap { main in screens.firstIndex(of: main) }
+        guard let index = PillGeometry.screenIndex(mouse: NSEvent.mouseLocation,
+                                                   screenFrames: screens.map(\.frame),
+                                                   fallback: fallback) else { return nil }
+        return screens[index]
     }
 }

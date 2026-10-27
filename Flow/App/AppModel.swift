@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 import Observation
 
 /// Builds and wires every component. The only place that knows about all of them.
@@ -7,6 +7,10 @@ final class AppModel {
     let settings: SettingsStore
     let permissions: PermissionsChecker
     let models: ModelManager
+    /// Last checked availability of Apple Intelligence (Settings explains the Qwen fallback with it).
+    private(set) var appleIntelligence: AppleIntelligenceStatus
+    /// The cleanup model actually in use: the Settings choice, or Qwen3 1.7B standing in for Apple Intelligence.
+    private(set) var cleanupEngine: CleanupEngine
     @ObservationIgnored let hotkeyMonitor: HotkeyMonitor
     @ObservationIgnored let recorder: AudioRecorder
     @ObservationIgnored let overlay: OverlayController
@@ -16,28 +20,44 @@ final class AppModel {
     #endif
 
     @ObservationIgnored private var permissionPoll: Task<Void, Never>?
+    @ObservationIgnored private var wakeObserver: NSObjectProtocol?
+    @ObservationIgnored private let appleIntelligenceStatus: @MainActor () -> AppleIntelligenceStatus
+    @ObservationIgnored private let makeCleaner: @MainActor (CleanupEngine) -> any CleanupBackend
 
-    init(settings: SettingsStore = SettingsStore()) {
+    /// `appleIntelligenceStatus` and `makeCleaner` are replaceable for tests.
+    init(
+        settings: SettingsStore = SettingsStore(),
+        appleIntelligenceStatus: @escaping @MainActor () -> AppleIntelligenceStatus = AppleIntelligenceCleaner.currentStatus,
+        makeCleaner: @escaping @MainActor (CleanupEngine) -> any CleanupBackend = { $0.makeCleaner() }
+    ) {
         self.settings = settings
+        self.appleIntelligenceStatus = appleIntelligenceStatus
+        self.makeCleaner = makeCleaner
         self.hotkeyMonitor = HotkeyMonitor(hotkey: settings.hotkey)
         // Locals first: `self` can't be used until every stored property is set.
         let permissions = PermissionsChecker()
         let recorder = AudioRecorder()
         let overlay = OverlayController()
         let transcriber = WhisperKitTranscriber(variant: settings.whisperModel.variant)
-        let cleaner = MLXCleaner(repoID: settings.cleanupModel.repoID)
+        let appleIntelligence = appleIntelligenceStatus()
+        let cleanupEngine = CleanupEngine.resolve(settings.cleanupModel, appleIntelligence: appleIntelligence)
+        let cleaner = makeCleaner(cleanupEngine)
         let models = ModelManager(transcriber: transcriber, cleaner: cleaner, keepWarm: { settings.keepWarm })
         self.permissions = permissions
         self.recorder = recorder
         self.overlay = overlay
         self.models = models
+        self.appleIntelligence = appleIntelligence
+        self.cleanupEngine = cleanupEngine
         self.coordinator = DictationCoordinator(
             recorder: recorder,
             transcriber: transcriber,
             cleaner: cleaner,
             inserter: PasteboardInserter(pasteboard: SystemPasteboard(), keys: SystemKeySender(), focus: AXFocusProbe()),
             pill: overlay,
+            media: SystemMediaPauser(),
             isCleanupEnabled: { settings.cleanupEnabled },
+            isIncrementalEnabled: { settings.transcribeWhileSpeaking },
             blockedReason: { Self.blockedReason(permissions: permissions, models: models) }
         )
         #if DEBUG
@@ -59,13 +79,30 @@ final class AppModel {
         recorder.onLevel = { [weak self] level in self?.overlay.push(level: level) }
         hotkeyMonitor.onAction = { [weak self] action in self?.coordinator.handle(action) }
         coordinator.onAutoStop = { [weak self] in self?.hotkeyMonitor.resetGesture() }
-        coordinator.onRecordingStarted = { [weak self] in self?.models.warmUp() }
+        coordinator.onRecordingStarted = { [weak self] in
+            // Picks up Apple Intelligence being turned on or off in System Settings since the last dictation.
+            self?.refreshCleanupEngine()
+            self?.models.warmUp()
+        }
         coordinator.onDictationProcessed = { [weak self] in self?.models.touch() }
         if permissions.microphone == .notDetermined {
             Task { await permissions.requestMicrophone() }
         }
         models.prepareAll()
+        warmUpAfterWake()
         startHotkeyWhenTrusted()
+    }
+
+    /// Sleep leaves the models loaded but cold: warm them as the Mac wakes, before the first dictation needs them.
+    private func warmUpAfterWake() {
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                Log.models.notice("woke from sleep; warming models")
+                self?.models.warmUp()
+            }
+        }
     }
 
     // MARK: - Model switching (used by Settings)
@@ -77,7 +114,19 @@ final class AppModel {
     }
 
     func switchCleanupModel() {
-        let cleaner = MLXCleaner(repoID: settings.cleanupModel.repoID)
+        refreshCleanupEngine()
+    }
+
+    /// Re-checks Apple Intelligence and swaps the cleanup model if the one that should run has changed
+    /// (spec §11 amendment 8). Cheap; called on Settings changes, when Settings opens and when a recording starts.
+    func refreshCleanupEngine() {
+        let status = appleIntelligenceStatus()
+        if status != appleIntelligence { appleIntelligence = status }
+        let engine = CleanupEngine.resolve(settings.cleanupModel, appleIntelligence: status)
+        guard engine != cleanupEngine else { return }
+        Log.models.notice("cleanup model: \(String(describing: engine), privacy: .public) (Apple Intelligence \(String(describing: status), privacy: .public))")
+        cleanupEngine = engine
+        let cleaner = makeCleaner(engine)
         coordinator.cleaner = cleaner
         models.replace(.cleaner, with: cleaner)
     }
